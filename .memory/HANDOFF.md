@@ -9,7 +9,7 @@
 done
 
 ### 重要文件和近期决定
-- 实际仓库 /Users/johnyehyo/mine/code/web/blob/zhiyu；分支feat/first-version；功能提交9c41602。origin git@github.com:JohnYehyo/zhiyu.git；未push、PR或部署，未改父目录原型。
+- 实际仓库 /Users/johnyehyo/mine/code/web/blob/zhiyu；分支feat/first-version；功能提交9c41602。origin git@github.com:JohnYehyo/zhiyu.git；已按用户本轮授权push到origin/feat/first-version；未PR或部署，未改父目录原型。
 - Supabase Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2账号endpoint https://1b78820da96cc4165361c9f7be4d3099.r2.cloudflarestorage.com，bucket johnyehyo，prefix blob/，public https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev。
 - 已有被忽略.env.local公开配置；密钥仍需用户自行填入，禁止读取/输出/提交真实密钥。环境字段与别名看.env.example。
 - README.md说明命令与写作流程；docs/cloud-setup.md为SQL/Auth/R2/CORS；docs/deployment.md为Vercel导入；docs/verification.md为最终证据与约定。
@@ -40,7 +40,7 @@ done
 Supabase托管角色/REST、SQL真实应用、登录刷新、非管理员真实访问、R2预检/手机File直传/重复PUT拒绝/HEAD、托管公开缓存仍待凭据与部署验收。不能把本地通过称为云已连通。
 
 ### 下一步任务
-用户填.env.local或Vercel变量、应用SQL、创建唯一管理员并填UID、配置R2密钥和CORS。用户明确授权后再推送GitHub/部署；不要自行PR或推送。恢复时以Git状态和本文件为准，不重新实现首版。
+GitHub推送已完成，当前分支跟踪origin/feat/first-version；用户自行在Vercel导入该分支，可先不填云密钥浏览示例。真实发布再填环境变量、应用SQL、创建唯一管理员UID、配置R2密钥和CORS；不自行创建PR或部署。恢复时校验Git，不重新实现首版。
 
 ## [reader]
 

@@ -1,6 +1,6 @@
 # 首版验证与接入边界
 
-功能基线：9c41602，分支 feat/first-version。仅本地提交，未推送、创建 PR、部署或真实云写入。
+功能基线：9c41602，分支 feat/first-version。已按用户授权推送GitHub的feat/first-version分支；未创建PR、部署或真实云写入。
 
 ## 最终验证
 - npm test：71/71 PASS，13 个测试文件；包括实际迁移 SQL 的 PGlite 权限、事务、快照与回滚验证。

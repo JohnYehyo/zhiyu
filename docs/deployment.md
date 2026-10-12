@@ -1,6 +1,6 @@
 # 导入 Vercel
 
-首版使用 Next.js + Supabase + R2；没有运行任何外部部署，也没有替用户推送代码。先审核本地提交，再由用户将分支推送到 GitHub；在 Vercel 点击 Add New → Project，导入 `JohnYehyo/zhiyu`，选择实现所在的分支。
+首版使用 Next.js + Supabase + R2；代码已按用户授权推送 GitHub，部署由用户在 Vercel 创建。在 Vercel 点击 Add New → Project，导入 `JohnYehyo/zhiyu`，选择 `feat/first-version` 分支。
 
 ## 项目设置
 
