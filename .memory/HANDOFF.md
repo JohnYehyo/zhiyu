@@ -26,3 +26,42 @@ implementation
 
 ### 下一步任务
 记录实施计划；创建 Next.js/TypeScript 项目和本地示例媒体；实现公共阅读、安全 API/迁移 SQL与后台；测试、构建和真实浏览器检查；准备首个 Git 提交。Supabase 公共 URL 和服务密钥待配置，生产链路实测列为证据缺口。
+
+## [reader]
+
+### 当前目标 + 成功指标
+Task 1：Next.js 基础与剪贴簿阅读端；共享类型和读取接口符合首版规格，示例明确标识，安全富文本/媒体/搜索具备真实测试，独立文章与归档/相册/关于可构建。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- 分支 feat/first-version；不读取 .env.local，不修改父目录原型，不推送或部署。
+- src/lib/types.ts 按规格输出 RichNode/PostDraft/Article/DraftPost/MediaRecord。
+- src/lib/content/document.ts 输出 safeLink/normalizeDocument/documentText/documentHeadings；RichContent 安全 React 渲染受支持节点，不执行 HTML；媒体只解析 storageKey，不加载任意 src。
+- mediaUrl 只接受本地 /assets/ 或 blob/ 前缀对象，公共 origin 必须为 HTTPS 根地址。图片原比例，视频 controls/playsInline 且不自动播放。
+- posts.ts 当前为示例适配器；Task 2 接入云读取。全局链接使用稳定路由，真实空列表不会指向固定示例文章。
+- Next agentRules:false 避免自动追加依赖目录阅读指令；原项目 AGENTS 保持完整。
+
+### 已完成
+- 基础配置/锁文件、本地字体及许可、SVG和3秒MP4素材；粉色开篇/相纸精选/紧凑日记/薄荷绿寄语组成。
+- 首页、独立文章、目录、归档、相册、关于、未知页与读取错误页；搜索分类组合筛选；完整手机导航和低调管理入口。
+- 自审与完整自动验证；报告位于 .superpowers/sdd/2026-10-12-first-version/task-1-report.md。
+
+### 已运行的命令 + 结果
+- npm test RED：24项中8项因占位实现失败；GREEN与最终全套：24/24 PASS。
+- npm run typecheck：PASS；npm run lint：PASS；npm run build：PASS（Next 16.4.0，公开地址存在但空密钥配置）。
+- npm audit --omit=dev：PASS，0漏洞；完整audit：5项high仅在ESLint工具链，braces最新3.0.3仍受影响，无兼容补丁，未降级Next。
+- curl首页/有效文章/未知文章：200/200/404；git diff --check：PASS。
+- npm run dev -- --port 3100：运行中，exec session 27730，供主任务浏览器验证。
+
+### 已知问题和“请勿重读”列表
+- 规格、参考组成已确认，不重新读整份计划或父目录其他风格。
+- ESLint9.39.5有上游deprecated提示；dev-tool braces advisory无兼容补丁；运行时audit为0。
+- Task1未做真实云测试，未接入后台/API；不应将示例适配器称为云接入完成。
+
+### 待验证 / 证据缺口
+主任务后续做真实浏览器手机/平板和搜索/导航/正文布局检查；Task2/3接入后做完整联调。Supabase/R2实际读取写入仍需密钥和云配置。
+
+### 下一步任务
+主任务审查Task1报告与提交，从Task2云存储/管理员API继续；保留公共共享接口。开发服务器3100可用于后续检查。

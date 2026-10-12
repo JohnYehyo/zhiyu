@@ -14,3 +14,4 @@ target/
 .vercel/
 .DS_Store
 *.log
+*.tsbuildinfo
