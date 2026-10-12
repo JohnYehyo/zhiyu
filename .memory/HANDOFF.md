@@ -121,9 +121,11 @@ done
 - /admin/demo仅当前页面本地编辑/下载，无云保存、上传和发布；真实/admin视图以server getAdminSession验证。README/docs/deployment.md与cloud-setup/env.example对齐。
 
 ### 已完成
+Single residual fix：无前史确认back不再直接设置leaving；confirmedBack仅表示请求意图，真实离开由不同页面popstate或原生navigate traverse确认。无目标时beforeunload/站内取消持续有效；后续update、reload、click、pageshow清理意图并重新保护。不使用history.length推断位置，不加框架。
 Task3本地提交bf7cf61；final-fix wave六项定点修复完成：同窗口Link/back导航保护、仅修订冲突锁写、手机hero独立正常流图片区、仅确认公开版本时显示阅读地址、按初始/最近确认内容判断未保存修改、关联阅读源码格式与QA目录gitignore。报告.superpowers/sdd/2026-10-12-first-version/task-3-report.md已追加本轮证据。
 
 ### 已运行的命令 + 结果
+- 新真实protectEditorNavigation模块回归RED1：single初始entry确认back后beforeunload不保护；GREEN4/4导航tests，覆盖确认后beforeunload立即保护、update重建marker、Link cancel有效，正常前史一次确认离开，既有Link/hash分类仍PASS。最终typecheck/lint/diff --check PASS；未build/全套/browser扩测，根生产3102/session6091未动。
 - 保存/内容TDD首轮RED7/7失败→GREEN7/7 PASS；alias RED2/2失败→GREEN2/2 PASS；空src回归RED1失败→GREEN3/3内容tests PASS。
 - 最终npm test64/64 PASS，typecheck/lint/build/git diff --check PASS；npm audit --omit=dev：0漏洞。
 - production3102：首页/admin/demo/admin/login/admin/posts/new200，所列Next静态资源全200；login/new显示未配置，GET管理API503 NOT_CONFIGURED。
@@ -142,4 +144,5 @@ Task3本地提交bf7cf61；final-fix wave六项定点修复完成：同窗口Lin
 没有真实密钥：托管Supabase登录/刷新/角色/迁移REST、真实R2/CORS/File直传/条件写、托管缓存更新和编码兼容仍需接入后验收。没有声称云已连通。
 
 ### 下一步任务
+根任务仅该residual finding的focused review后构建最新源码；运行中的3102/session6091仍由root拥有，本任务未替换.next。
 根任务做一次final-fix scoped re-review，再最终全套和集中浏览器验证；生产3102已停止，根任务build后自行启动给用户预览。新建真实稿件→id与真实云认证/上传仍按既有证据缺口处理，不加鉴权旁路。推送/部署由用户授权。

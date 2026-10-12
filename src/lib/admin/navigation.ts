@@ -34,6 +34,9 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
   let armed = false;
   let restoring = false;
   let leaving = false;
+  let confirmedBack = false;
+  const navigation = (window as Window & { navigation?: EventTarget })
+    .navigation;
   let cleanup: { state: Record<string, unknown>; url: string } | null = null;
   let currentUrl = window.location.href;
   let currentState = window.history.state;
@@ -45,6 +48,10 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
   }
 
   function update() {
+    if (confirmedBack) {
+      confirmedBack = false;
+      armed = false;
+    }
     if (!cleanup && !restoring) {
       currentUrl = window.location.href;
       currentState = window.history.state;
@@ -67,6 +74,8 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
   }
 
   function click(event: MouseEvent) {
+    // A fresh user action supersedes an earlier back request that went nowhere.
+    confirmedBack = false;
     if (
       event.defaultPrevented ||
       event.button !== 0 ||
@@ -94,14 +103,47 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
     } else {
       event.preventDefault();
       event.stopImmediatePropagation();
+      update();
     }
   }
 
   function beforeUnload(event: BeforeUnloadEvent) {
+    confirmedBack = false;
     if (!leaving && isBlocked()) event.preventDefault();
   }
 
+  function leavesCurrentPage(url: string) {
+    return url.split("#")[0] !== currentUrl.split("#")[0];
+  }
+
+  function navigating(event: Event) {
+    const traversal = event as Event & {
+      navigationType?: string;
+      destination?: { url: string };
+    };
+    if (
+      confirmedBack &&
+      traversal.navigationType === "traverse" &&
+      traversal.destination &&
+      leavesCurrentPage(traversal.destination.url)
+    ) {
+      confirmedBack = false;
+      leaving = true;
+    }
+  }
+
   function popstate(event: PopStateEvent) {
+    if (confirmedBack) {
+      confirmedBack = false;
+      if (leavesCurrentPage(window.location.href)) {
+        leaving = true;
+        return;
+      }
+      event.stopImmediatePropagation();
+      armed = window.history.state?.[markerKey] === marker;
+      update();
+      return;
+    }
     if (cleanup) {
       event.stopImmediatePropagation();
       window.history.replaceState(cleanup.state, "", cleanup.url);
@@ -134,7 +176,8 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
     // Capture runs before Next's popstate handler; stay on this editor until decided.
     event.stopImmediatePropagation();
     if (!isBlocked() || window.confirm(leaveMessage)) {
-      leaving = true;
+      armed = false;
+      confirmedBack = true;
       window.history.back();
     } else {
       restoring = true;
@@ -159,6 +202,7 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
   }
 
   function pageshow() {
+    confirmedBack = false;
     leaving = false;
     armed = window.history.state?.[markerKey] === marker;
     update();
@@ -170,6 +214,7 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
   window.addEventListener("hashchange", hashchange);
   window.addEventListener("pagehide", pagehide);
   window.addEventListener("pageshow", pageshow);
+  navigation?.addEventListener("navigate", navigating);
   update();
   return {
     update,
@@ -180,6 +225,7 @@ export function protectEditorNavigation(isBlocked: () => boolean) {
       window.removeEventListener("hashchange", hashchange);
       window.removeEventListener("pagehide", pagehide);
       window.removeEventListener("pageshow", pageshow);
+      navigation?.removeEventListener("navigate", navigating);
       if (window.history.state?.[markerKey] === marker) {
         window.history.replaceState(cleanState(), "", window.location.href);
       }
