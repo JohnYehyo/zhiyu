@@ -65,3 +65,40 @@ done
 
 ### 下一步任务
 主任务审查Task1报告与提交，从Task2云存储/管理员API继续；保留公共共享接口。开发服务器3100可用于后续检查。
+
+## [services]
+
+### 当前目标 + 成功指标
+Task 2：安全 Supabase/R2 服务、管理 API、私有草稿与公开快照事务、媒体直传与完成验证。未配置时真实写入失败关闭；接口供 Task3 使用。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- src/lib/config.ts：hasSupabaseConfig 使用直接 NEXT_PUBLIC 环境引用；hasWriteConfig 为服务器调用的布尔检查，不依赖 R2。真实 Secret client 在 server-only 模块，禁用会话持久化。
+- src/lib/auth.ts 输出 getAdminSession()/requireAdmin()；只根据 Supabase getUser 验证身份和 ADMIN_USER_ID。src/lib/supabase/browser.ts 输出客户端 getBrowserSupabase()，未配置返回 null。
+- src/proxy.ts 仅 /admin 和 /api/admin 刷新会话；公共 reader 不接触Cookie。
+- supabase/migrations/202610120001_initial.sql：private draft_posts/media、public read-only published_posts；服务角色独占 RPC，owner+revision 行锁；发布媒体验证、剥离预览 src，事务写入快照。
+- 所有管理 API envelope 与规格一致；主 Agent 批准上传响应增补 uploadHeaders（Content-Type 和 If-None-Match:*），后台 PUT 需发送它们；不手工发送 Content-Length。
+- R2 key 固定 blob/<管理员UUID>/<随机UUID>.<规范扩展名>，account endpoint + path-style；条件写只允许新对象，签名绑定长度/类型/条件，HEAD精确核对后ready。
+- docs/cloud-setup.md 保存接入、权限、CORS、上传重试与证据缺口。报告 .superpowers/sdd/2026-10-12-first-version/task-2-report.md（目录本来已忽略，不强制提交）。
+
+### 已完成
+服务客户端、读取适配器、六组管理路由、严格富文本/请求/上传校验、Origin防护、SQL事务和setup文档。未改阅读UI。未读 .env.local、未真实云写入、未推送/PR/部署。
+
+### 已运行的命令 + 结果
+- npm test：54/54 PASS（24原有+30服务测试），包含PGlite执行真实迁移、私有权限/快照/修订/媒体/回滚测试。
+- npm run typecheck、npm run lint、npm run build、git diff --check：PASS，最后完整验证在格式整理后。
+- npm audit --omit=dev：PASS，0漏洞；原有5项high仅开发ESLint/braces链，无兼容修复。
+- 独立3101生产服务：首页/示例文章/未知slug=200/200/404；所有管理端点无配置503 NOT_CONFIGURED；缺失/跨站Origin403 CROSS_ORIGIN。此测试进程已关闭；Task1的3100进程未主动关闭。
+
+### 已知问题和“请勿重读”列表
+- 已验证SQL和签名行为；不要改为简单mock echo测试，不声称真实云已接通。
+- R2公共桶中的草稿媒体凭URL可直接访问（既定公共桶架构）；pending孤立对象暂无自动清理；HEAD检验元数据并不扫描/转码字节。
+- 不重读整个实现计划或父目录原型；服务接口、验证边界见setup文档/Task2报告。
+
+### 待验证 / 证据缺口
+Supabase托管角色/REST、SQL真实应用、管理员登录刷新、真实R2/CORS/浏览器File上传与重复PUT拒绝、公开缓存刷新仍需后续凭据环境实测。PGlite不模拟多连接并发调度，仅执行实际事务与锁/修订逻辑。
+
+### 下一步任务
+主任务review Task2并接入Task3后台，发送uploadHeaders，串行保存/发布，409冲突明确提示；真实云配置由用户后续完成。
