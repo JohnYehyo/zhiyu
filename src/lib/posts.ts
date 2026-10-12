@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Article, PostDraft } from "./types";
 import { demoPosts } from "./demo-posts";
-import { hasSupabaseConfig } from "./config";
+import { hasSupabaseConfig, publicSupabaseKey } from "./config";
 import { normalizeDocument } from "./content/document";
 interface PublishedRow {
   id: string;
@@ -13,7 +13,7 @@ interface PublishedRow {
 function reader() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    publicSupabaseKey(),
     {
       auth: {
         persistSession: false,

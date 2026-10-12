@@ -102,3 +102,41 @@ Supabase托管角色/REST、SQL真实应用、管理员登录刷新、真实R2/C
 
 ### 下一步任务
 主任务review Task2并接入Task3后台，发送uploadHeaders，串行保存/发布，409冲突明确提示；真实云配置由用户后续完成。
+
+## [admin]
+
+### 当前目标 + 成功指标
+Task 3：手机后台登录/配置提示/稿件列表/编辑预览、真实签名直传、串行保存发布、冲突保留文本、Vercel导入文档。实现与本地验证完成，根任务独立review后最终交付。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- 分支feat/first-version，基于22249c1；不读.env.local、不推送、PR、部署或真实云写入。
+- src/lib/admin/save-coordinator.ts为编辑器唯一写队列；请求串行，使用已确认revision；服务响应只更新版本信息，不替换当前draft；409停写并保留文本，可下载JSON后对照。
+- 发布/撤回先保存最新内容；首次create成功用native history更新URL，避免重新请求页面而重置期间输入。
+- Tiptap3.31.4，immediatelyRender:false；自定义image/video属性限定mediaId/storageKey/src/alt/caption；serializeEditorDocument省略编辑器额外属性和空src，保留媒体身份；预览共用RichContent。
+- 原始File直PUT，发送uploadHeaders两个签名头，不手工设置Content-Length；complete确认ready后才插入；不确定结果支持重试complete。
+- 根任务追加授权Supabase legacy aliases：非空canonical优先，否则public回退NEXT_PUBLIC_SUPABASE_ANON_KEY，server回退SUPABASE_SERVICE_ROLE_KEY。公共key直接字面引用供Next内联；secret仅server-only服务模块选取，ADMIN_USER_ID规则保持。
+- /admin/demo仅当前页面本地编辑/下载，无云保存、上传和发布；真实/admin视图以server getAdminSession验证。README/docs/deployment.md与cloud-setup/env.example对齐。
+
+### 已完成
+管理routes/components、保存/发布队列、媒体上传及说明/图注、共享安全预览、部署文档、限定本地提交。报告.superpowers/sdd/2026-10-12-first-version/task-3-report.md。
+
+### 已运行的命令 + 结果
+- 保存/内容TDD首轮RED7/7失败→GREEN7/7 PASS；alias RED2/2失败→GREEN2/2 PASS；空src回归RED1失败→GREEN3/3内容tests PASS。
+- 最终npm test64/64 PASS，typecheck/lint/build/git diff --check PASS；npm audit --omit=dev：0漏洞。
+- production3102：首页/admin/demo/admin/login/admin/posts/new200，所列Next静态资源全200；login/new显示未配置，GET管理API503 NOT_CONFIGURED。
+- Playwright admin-smoke 390px：改标题/正文加粗/alt/图注→预览均为最新内容；手机工具条横向滚动但页面无横溢出；video controls/playsInline true、autoplay false；demo保存/发布按钮0；离开未保存内容触发beforeunload提醒。截图output/playwright/admin-mobile-preview.png，已人工查看。
+- 独立production服务已在final build后重启：端口3102，exec session13694，供根任务后续验证。旧84498已关闭；未动无关进程。
+
+### 已知问题和“请勿重读”列表
+- 核心保存/内容/alias与无配置行为已验证，不重做全库调查或父目录原型阅读。
+- 浏览器只有既有flowers.svg预加载未使用提示，无编辑器console error；运行时audit0，原开发ESLint5项high advisory仍属既有问题。
+- 自己的output/playwright截图为本地验证生成物未提交；根任务的Codex交接段保留工作区，不纳入本任务commit。
+
+### 待验证 / 证据缺口
+没有真实密钥：托管Supabase登录/刷新/角色/迁移REST、真实R2/CORS/File直传/条件写、托管缓存更新和编码兼容仍需接入后验收。没有声称云已连通。
+
+### 下一步任务
+根任务做Task3独立review、整分支审查和最终修复/交付。真实云按docs/cloud-setup.md与docs/deployment.md接入，由用户授权推送/部署。

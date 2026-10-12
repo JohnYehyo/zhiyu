@@ -29,7 +29,7 @@ DraftPost {id:string;revision:number;draft:PostDraft;publishedRevision:number|nu
 MediaRecord {id:string;storageKey:string;mimeType:string;size:number;status:'pending'|'ready';alt?:string}。
 src/lib/posts.ts getPublishedPosts():Promise<Article[]>、getPublishedPost(slug):Promise<Article|null>；src/lib/media.ts mediaUrl(key):string。
 API POST稿件body=PostDraft；PATCH body={revision:number,draft:PostDraft}；发布/撤回body={revision:number}；成功稿件response={post:DraftPost}，列表={posts:DraftPost[]}；错误={error:string,code?:string}。
-上传初始body={filename:string,contentType:string,size:number}；response={media:MediaRecord,uploadUrl:string}；complete response={media:MediaRecord,url:string}。content image/video attrs 使用 mediaId/storageKey/alt/caption/src，src仅编辑展示，发布快照中的storageKey来自已验证media。
+上传初始body={filename:string,contentType:string,size:number}；response={media:MediaRecord,uploadUrl:string,uploadHeaders:{'Content-Type':string,'If-None-Match':'*'}}；complete response={media:MediaRecord,url:string}。content image/video attrs 使用 mediaId/storageKey/alt/caption/src，src仅编辑展示，发布快照中的storageKey来自已验证media。
 
 ## 验证
 安全内容/上传key/管理员/修订冲突等业务测试；npm test、typecheck、lint、build；无密钥API失败关闭；真实浏览器检查首页/文章/搜索过滤/手机导航/登录配置提示/编辑器预览与媒体布局。最终 reviewer 检查草稿泄漏、跨用户写、假成功、并发保存、发布校验。新代码使用当前稳定依赖并锁版本。

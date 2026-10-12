@@ -6,7 +6,7 @@
 
 1. 在 Supabase SQL Editor 应用 `supabase/migrations/202610120001_initial.sql`（一次性初始迁移，已有同名表请先人工审核；不要反复执行）。迁移已在本地 PGlite PostgreSQL 引擎验证，尚未应用真实项目。
 2. 在 Authentication 中关闭公开注册，人工创建唯一管理员账号，复制 User UID 为 `ADMIN_USER_ID`。后台使用邮箱密码登录，没有注册入口。Supabase API 仍有权限规则；关闭注册不能代替 API 鉴权。
-3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。
+3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。旧 Supabase/Vercel 集成的 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 和 `SUPABASE_SERVICE_ROLE_KEY` 也受支持；同类新变量 trim 后非空时优先，否则回退旧变量。服务角色永不使用 `NEXT_PUBLIC_*`。
 4. 在本地填 `.env.local`，在 Vercel 项目中分别配置环境变量。变量修改后重新构建部署。不要提交 `.env.local`，不要把 Secret key 放到 `NEXT_PUBLIC_*`。
 
 `draft_posts` 与 `media` 开启 RLS，并撤销 anon/authenticated 的所有表访问；只允许服务端 service_role。`published_posts` 只对公共角色开放 SELECT。写 API 每次调用 Supabase `getUser()` 校验真实用户，并严格比较管理员 UID。代理只刷新 `/admin/*` 和 `/api/admin/*` 的 Cookie；不会给公共阅读缓存加入会话。

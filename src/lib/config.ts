@@ -2,7 +2,14 @@
 export function hasSupabaseConfig(): boolean {
   return Boolean(
     validProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim(),
+      publicSupabaseKey(),
+  );
+}
+export function publicSupabaseKey(): string {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    ""
   );
 }
 function validProjectUrl(value: string | undefined): boolean {
@@ -25,10 +32,11 @@ export function hasWriteConfig(): boolean {
   return (
     hasSupabaseConfig() &&
     Boolean(
-      process.env.SUPABASE_SECRET_KEY?.trim() &&
-      /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(
-        process.env.ADMIN_USER_ID ?? "",
-      ),
+      (process.env.SUPABASE_SECRET_KEY?.trim() ||
+        process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) &&
+        /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(
+          process.env.ADMIN_USER_ID ?? "",
+        ),
     )
   );
 }
