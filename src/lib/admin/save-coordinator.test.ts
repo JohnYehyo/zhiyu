@@ -90,7 +90,10 @@ describe("save queue", () => {
       create: async () => post("unused", 1),
       save: async () => {
         attempts++;
-        throw Object.assign(new Error("conflict"), { status: 409 });
+        throw Object.assign(new Error("conflict"), {
+          status: 409,
+          code: "REVISION_CONFLICT",
+        });
       },
       publish: async () => post("unused", 1),
       unpublish: async () => post("unused", 1),
@@ -152,5 +155,105 @@ describe("save queue", () => {
     await publishing;
     expect(events).toEqual(["save:4:first", "save:5:newest", "publish:6"]);
     expect(queue.snapshot().post?.publishedRevision).toBe(6);
+  });
+
+  it("recovers from a slug collision after editing the address and saving", async () => {
+    const events: string[] = [];
+    const queue = new SaveCoordinator(draft("text"), post("text", 1), {
+      create: async () => post("text", 1),
+      save: async (_id, revision, value) => {
+        events.push(`save:${value.slug}`);
+        return { ...post(value.title, revision + 1), draft: value };
+      },
+      publish: async (_id, revision) => {
+        events.push(`publish:${revision}`);
+        if (revision === 1)
+          throw Object.assign(new Error("address taken"), {
+            status: 409,
+            code: "SLUG_CONFLICT",
+          });
+        return {
+          ...post("text", revision),
+          draft: { ...draft("text"), slug: "my-unique-day" },
+          publishedRevision: revision,
+          publishedAt: "2026-10-12",
+        };
+      },
+      unpublish: async () => post("text", 1),
+    });
+    await expect(queue.publish()).rejects.toThrow("address taken");
+    expect(queue.snapshot().status).toBe("error");
+    queue.update({ ...draft("text"), slug: "my-unique-day" });
+    await queue.flush();
+    await queue.publish();
+    expect(events).toEqual(["publish:1", "save:my-unique-day", "publish:2"]);
+    expect(queue.snapshot()).toMatchObject({
+      status: "saved",
+      post: { publishedRevision: 2 },
+    });
+  });
+
+  it("allows media state errors to be corrected and republished", async () => {
+    let ready = false;
+    let publications = 0;
+    const queue = new SaveCoordinator(draft("text"), post("text", 1), {
+      create: async () => post("text", 1),
+      save: async (_id, revision, value) => ({
+        ...post(value.title, revision + 1),
+        draft: value,
+      }),
+      publish: async (_id, revision) => {
+        publications++;
+        if (!ready)
+          throw Object.assign(new Error("media pending"), {
+            status: 409,
+            code: "MEDIA_NOT_READY",
+          });
+        return {
+          ...post("corrected", revision),
+          publishedRevision: revision,
+          publishedAt: "2026-10-12",
+        };
+      },
+      unpublish: async () => post("text", 1),
+    });
+    await expect(queue.publish()).rejects.toThrow("media pending");
+    expect(queue.snapshot().status).toBe("error");
+    queue.update(draft("corrected"));
+    ready = true;
+    await queue.publish();
+    expect(publications).toBe(2);
+    expect(queue.snapshot()).toMatchObject({
+      status: "saved",
+      post: { revision: 2, publishedRevision: 2 },
+    });
+  });
+
+  it("tracks real unsaved changes relative to the initial content and latest acknowledgement", async () => {
+    const queue = new SaveCoordinator(draft("original"), null, {
+      create: async (value) => ({ ...post(value.title, 1), draft: value }),
+      save: async (_id, revision, value) => ({
+        ...post(value.title, revision + 1),
+        draft: value,
+      }),
+      publish: async () => post("unused", 1),
+      unpublish: async () => post("unused", 1),
+    });
+    expect(queue.snapshot()).toMatchObject({
+      dirty: true,
+      hasUnsavedChanges: false,
+    });
+    queue.update(draft("edited"));
+    expect(queue.snapshot().hasUnsavedChanges).toBe(true);
+    queue.update(draft("original"));
+    expect(queue.snapshot().hasUnsavedChanges).toBe(false);
+    queue.update(draft("new text"));
+    await queue.flush();
+    expect(queue.snapshot()).toMatchObject({
+      dirty: false,
+      hasUnsavedChanges: false,
+    });
+    queue.update(draft("other"));
+    expect(queue.snapshot().hasUnsavedChanges).toBe(true);
   });
 });

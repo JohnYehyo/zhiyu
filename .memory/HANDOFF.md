@@ -113,7 +113,7 @@ done
 
 ### 重要文件和近期决定
 - 分支feat/first-version，基于22249c1；不读.env.local、不推送、PR、部署或真实云写入。
-- src/lib/admin/save-coordinator.ts为编辑器唯一写队列；请求串行，使用已确认revision；服务响应只更新版本信息，不替换当前draft；409停写并保留文本，可下载JSON后对照。
+- src/lib/admin/save-coordinator.ts为编辑器唯一写队列；请求串行，使用已确认revision；服务响应只更新版本信息，不替换当前draft；仅REVISION_CONFLICT锁写，SLUG_CONFLICT/MEDIA_NOT_READY可修正重试。修订冲突保留文本，可下载JSON后对照。
 - 发布/撤回先保存最新内容；首次create成功用native history更新URL，避免重新请求页面而重置期间输入。
 - Tiptap3.31.4，immediatelyRender:false；自定义image/video属性限定mediaId/storageKey/src/alt/caption；serializeEditorDocument省略编辑器额外属性和空src，保留媒体身份；预览共用RichContent。
 - 原始File直PUT，发送uploadHeaders两个签名头，不手工设置Content-Length；complete确认ready后才插入；不确定结果支持重试complete。
@@ -121,14 +121,17 @@ done
 - /admin/demo仅当前页面本地编辑/下载，无云保存、上传和发布；真实/admin视图以server getAdminSession验证。README/docs/deployment.md与cloud-setup/env.example对齐。
 
 ### 已完成
-管理routes/components、保存/发布队列、媒体上传及说明/图注、共享安全预览、部署文档、限定本地提交。报告.superpowers/sdd/2026-10-12-first-version/task-3-report.md。
+Task3本地提交bf7cf61；final-fix wave六项定点修复完成：同窗口Link/back导航保护、仅修订冲突锁写、手机hero独立正常流图片区、仅确认公开版本时显示阅读地址、按初始/最近确认内容判断未保存修改、关联阅读源码格式与QA目录gitignore。报告.superpowers/sdd/2026-10-12-first-version/task-3-report.md已追加本轮证据。
 
 ### 已运行的命令 + 结果
 - 保存/内容TDD首轮RED7/7失败→GREEN7/7 PASS；alias RED2/2失败→GREEN2/2 PASS；空src回归RED1失败→GREEN3/3内容tests PASS。
 - 最终npm test64/64 PASS，typecheck/lint/build/git diff --check PASS；npm audit --omit=dev：0漏洞。
 - production3102：首页/admin/demo/admin/login/admin/posts/new200，所列Next静态资源全200；login/new显示未配置，GET管理API503 NOT_CONFIGURED。
 - Playwright admin-smoke 390px：改标题/正文加粗/alt/图注→预览均为最新内容；手机工具条横向滚动但页面无横溢出；video controls/playsInline true、autoplay false；demo保存/发布按钮0；离开未保存内容触发beforeunload提醒。截图output/playwright/admin-mobile-preview.png，已人工查看。
-- 独立production服务已在final build后重启：端口3102，exec session13694，供根任务后续验证。旧84498已关闭；未动无关进程。
+- Final-fix focused：新增slug/media恢复及实际修改判定RED3→GREEN；Link分类RED1→GREEN；浏览器发现native hash先popstate回归RED1→GREEN。最终focused13tests/typecheck/lint/build/git diff --check PASS。
+- 导航浏览器：header/footer Link取消保留新标题；同文档back取消保留页面/标题，确认一次回/admin且marker清理；原生#main无提示；恢复初始标题后marker移除、未卸载编辑器，点击首页无提示。新标签/下载/锚点/外站分类通过unit。
+- hero320/390/740与1440断言无横溢出；手机插画visual top在入口bottom以下，390实测510px>484px；1440保持absolute+display:contents桌面构图。output/playwright/home-mobile-fixed-viewport.png已人工查看，无文字/入口遮挡。
+- final-fix最后production3102 session3258已主动停止，供根任务final build后自行重启；13694/8860也由本任务按重建顺序关闭，未动无关进程。
 
 ### 已知问题和“请勿重读”列表
 - 核心保存/内容/alias与无配置行为已验证，不重做全库调查或父目录原型阅读。
@@ -139,4 +142,4 @@ done
 没有真实密钥：托管Supabase登录/刷新/角色/迁移REST、真实R2/CORS/File直传/条件写、托管缓存更新和编码兼容仍需接入后验收。没有声称云已连通。
 
 ### 下一步任务
-根任务做Task3独立review、整分支审查和最终修复/交付。真实云按docs/cloud-setup.md与docs/deployment.md接入，由用户授权推送/部署。
+根任务做一次final-fix scoped re-review，再最终全套和集中浏览器验证；生产3102已停止，根任务build后自行启动给用户预览。新建真实稿件→id与真实云认证/上传仍按既有证据缺口处理，不加鉴权旁路。推送/部署由用户授权。

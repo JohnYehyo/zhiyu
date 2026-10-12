@@ -1,4 +1,5 @@
 import type { DraftPost, PostDraft } from "../types";
+import { serializeEditorDocument } from "./content";
 export interface SaveTransport {
   create(draft: PostDraft): Promise<DraftPost>;
   save(id: string, revision: number, draft: PostDraft): Promise<DraftPost>;
@@ -18,11 +19,24 @@ export interface SaveSnapshot {
   status: SaveStatus;
   error: string | null;
   dirty: boolean;
+  hasUnsavedChanges: boolean;
+}
+
+function draftKey(draft: PostDraft) {
+  return JSON.stringify([
+    draft.title,
+    draft.slug,
+    draft.excerpt,
+    draft.category,
+    draft.coverKey,
+    serializeEditorDocument(draft.content),
+  ]);
 }
 
 /** One writer per editor. Server responses update revision, never replace local text. */
 export class SaveCoordinator {
   private draft: PostDraft;
+  private initialDraft: PostDraft;
   private post: DraftPost | null;
   private version = 0;
   private savedVersion: number;
@@ -38,6 +52,7 @@ export class SaveCoordinator {
     private transport: SaveTransport,
   ) {
     this.draft = structuredClone(draft);
+    this.initialDraft = structuredClone(draft);
     this.post = post;
     this.savedVersion = post ? 0 : -1;
     this.status = post ? "saved" : "dirty";
@@ -70,6 +85,9 @@ export class SaveCoordinator {
       status: this.status,
       error: this.error,
       dirty: this.version !== this.savedVersion,
+      hasUnsavedChanges:
+        draftKey(this.draft) !==
+        draftKey(this.post?.draft ?? this.initialDraft),
     };
   }
 
@@ -83,8 +101,8 @@ export class SaveCoordinator {
     this.conflict =
       typeof error === "object" &&
       error !== null &&
-      "status" in error &&
-      error.status === 409;
+      "code" in error &&
+      error.code === "REVISION_CONFLICT";
     if (this.conflict || version === this.version) {
       this.status = this.conflict ? "conflict" : "error";
       this.error =

@@ -11,6 +11,7 @@ target/
 
 # Local tools and system files
 .playwright-cli/
+output/playwright/
 .vercel/
 .DS_Store
 *.log

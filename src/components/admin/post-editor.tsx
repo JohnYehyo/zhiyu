@@ -37,6 +37,7 @@ import { safeLink } from "@/lib/content/document";
 import { mediaUrl } from "@/lib/media";
 import { RichContent } from "@/components/rich-content";
 import { EditorImage, EditorVideo } from "./media-node";
+import { protectEditorNavigation } from "@/lib/admin/navigation";
 
 const emptyDraft = (): PostDraft => ({
   title: "",
@@ -85,6 +86,10 @@ export function PostEditor({
     error?: string;
   } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadBusy = useRef(false);
+  const navigationProtection = useRef<ReturnType<
+    typeof protectEditorNavigation
+  > | null>(null);
   const uploadTarget = useRef<{ kind: "image" | "video"; cover: boolean }>({
     kind: "image",
     cover: false,
@@ -175,20 +180,33 @@ export function PostEditor({
   }, [demo, queue, snapshot, validFields]);
 
   useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (queue.snapshot().dirty || upload?.busy) {
-        event.preventDefault();
-      }
+    const protection = protectEditorNavigation(
+      () => queue.snapshot().hasUnsavedChanges || uploadBusy.current,
+    );
+    navigationProtection.current = protection;
+    return () => {
+      protection.dispose();
+      navigationProtection.current = null;
     };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [queue, upload?.busy]);
+  }, [queue]);
+
+  useEffect(() => {
+    uploadBusy.current = Boolean(upload?.busy);
+  }, [upload?.busy]);
 
   // Native history updates the URL without fetching a new editor or resetting newer typing.
   useEffect(() => {
     if (!demo && snapshot.post && !initialPost)
-      window.history.replaceState(null, "", `/admin/posts/${snapshot.post.id}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `/admin/posts/${snapshot.post.id}`,
+      );
   }, [demo, initialPost, snapshot.post]);
+
+  useEffect(() => {
+    navigationProtection.current?.update();
+  }, [snapshot, upload?.busy]);
 
   const updateField = (
     name: keyof Omit<PostDraft, "content">,
@@ -369,14 +387,6 @@ export function PostEditor({
                 <a
                   className="admin-button"
                   href={`/admin/posts/${snapshot.post.id}`}
-                  onClick={(event) => {
-                    if (
-                      !window.confirm(
-                        "重新打开会丢弃当前页面的修改，请先下载草稿。继续吗？",
-                      )
-                    )
-                      event.preventDefault();
-                  }}
                 >
                   重新打开
                 </a>
@@ -709,13 +719,15 @@ export function PostEditor({
               ? "当前版本已发布"
               : "已发布，当前草稿可能有新修改"}
           </span>
-          <Link
-            href={`/posts/${snapshot.post.draft.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            查看阅读页
-          </Link>
+          {snapshot.post.publishedRevision === snapshot.post.revision && (
+            <Link
+              href={`/posts/${snapshot.post.draft.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              查看阅读页
+            </Link>
+          )}
           <button
             className="admin-button subtle"
             disabled={controlsDisabled}
