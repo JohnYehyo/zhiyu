@@ -1,0 +1,16 @@
+# Dependency and build output
+node_modules/
+.next/
+dist/
+.venv/
+target/
+
+# Local secrets; keep the empty configuration template
+.env*
+!.env.example
+
+# Local tools and system files
+.playwright-cli/
+.vercel/
+.DS_Store
+*.log
