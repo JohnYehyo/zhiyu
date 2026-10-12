@@ -3,146 +3,74 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-在用户克隆的 zhiyu 仓库实现 Vercel + Supabase + Cloudflare R2 的第一版，沿用手帐 UI，可构建并供用户导入 Vercel。支持独立文章、手机后台编辑、草稿/发布、管理员鉴权与 R2 直传结构。账号未配置时示例阅读正常，真实写入/上传必须关闭。
+芝语首版已完成：手帐阅读端、独立文章、手机网页编辑、私有草稿与公开快照、管理员验证和R2直传结构。可构建并在推送后导入Vercel；无凭据时仅明确示例，真实写入失败关闭。
 
 ### 当前阶段
-implementation
+done
 
 ### 重要文件和近期决定
-- 项目目录 /Users/johnyehyo/mine/code/web/blob/zhiyu，origin git@github.com:JohnYehyo/zhiyu.git。当前空仓库，master 未有提交，工作区原干净。
-- 父目录 /Users/johnyehyo/mine/code/web/blob 的 .memory/HANDOFF.md 与 docs/ 保存已批准架构和 UI 原型；scrapbook.html / styles.css / article.css / assets 是手帐参考。只迁移此风格。
-- 用户已确定国外方案；GitHub clone 已完成。计划第一版代码提交后由用户创建 Vercel 项目。
-- R2 S3 endpoint https://1b78820da96cc4165361c9f7be4d3099.r2.cloudflarestorage.com；桶 johnyehyo；对象前缀 blob/（用户本轮已明确），Public URL https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev。
-- 用户提供的 Supabase URL 是 Vercel 集成管理页，不是真正 https://xxx.supabase.co Project URL。用户已打开 Supabase 控制台但未找到 URL，正在辅助定位公开地址，不读密钥。
-- 尚无本地服务密钥，不得伪造已连通 Supabase/R2 的测试；未发布外部网站、未上传家庭素材。
+- 实际仓库 /Users/johnyehyo/mine/code/web/blob/zhiyu；分支feat/first-version；功能提交9c41602。origin git@github.com:JohnYehyo/zhiyu.git；未push、PR或部署，未改父目录原型。
+- Supabase Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2账号endpoint https://1b78820da96cc4165361c9f7be4d3099.r2.cloudflarestorage.com，bucket johnyehyo，prefix blob/，public https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev。
+- 已有被忽略.env.local公开配置；密钥仍需用户自行填入，禁止读取/输出/提交真实密钥。环境字段与别名看.env.example。
+- README.md说明命令与写作流程；docs/cloud-setup.md为SQL/Auth/R2/CORS；docs/deployment.md为Vercel导入；docs/verification.md为最终证据与约定。
+- supabase/migrations/202610120001_initial.sql未应用托管项目；真实云验收需用户配置。
 
 ### 已完成
-- 检查空 repo/Git 状态和已确定架构；确认 R2 桶/前缀。
-- 用户要求开始依所选方案实现，不重启架构和风格讨论。
+- 首页、文章、归档/搜索、相册、关于；六色与本地字体素材；手机导航、自然图片比例和手动视频。
+- Supabase getUser+ADMIN_USER_ID、Origin防护、私有草稿/媒体、公开快照事务、revision锁与ready媒体校验。
+- Tiptap手机编辑、图注/封面、串行保存发布、可修正409、真实版本冲突停写/保留/下载、站内和返回离开保护、只展示可靠公开阅读地址。
+- 所有任务独立审查和整分支审查结束；六项发现及新增无前史导航缺陷已修复复审，无未关闭Critical/Important。
 
 ### 已运行的命令 + 结果
-- git status -sb：No commits yet on master，origin/master gone（远端空仓库）。
-- Node v22.13.0，npm 10.9.2。
+- 最终npm test：71/71 PASS，13files，含实际PGlite迁移事务。
+- 最终npm run typecheck/lint/build、git diff --check：PASS；runtime audit0。
+- 生产36组布局PASS，手机hero不遮文案；导航/search/编辑预览/图注/视频/Link与back取消确认通过。
+- 真实Chrome初始history.length=1回归：无目标返回后内容仍在，刷新与Link取消仍保护。
+- HTTP200/200/404，未配置API503、跨站写403；无runtime errors，既有预加载未使用warning。
+- 最终生产预览 http://localhost:3102，exec session36687；停了可npm run start -- --port 3102（源码/环境变更后先build）。
+
+### 已知问题和“请勿重读”列表
+- 不重做已完成架构/原型比较、认证/事务/上传全库审查；精准定位相关模块即可。
+- SaveCoordinator只将REVISION_CONFLICT永久锁写；SLUG_CONFLICT/MEDIA_NOT_READY可修正重试。navigation.ts以实际离开区分返回意图，无前史回归已覆盖。
+- 公开R2草稿媒体可凭URL访问；无转码/字节扫描或pending自动清理，已在UI/docs披露。
+- 开发ESLint/braces既有advisory未降级处理；runtime audit0。
+- 旧临时服务已停止，只有根36687预览；build前协调停服务以免.next资源版本不匹配。
+
+### 待验证 / 证据缺口
+Supabase托管角色/REST、SQL真实应用、登录刷新、非管理员真实访问、R2预检/手机File直传/重复PUT拒绝/HEAD、托管公开缓存仍待凭据与部署验收。不能把本地通过称为云已连通。
 
 ### 下一步任务
-记录实施计划；创建 Next.js/TypeScript 项目和本地示例媒体；实现公共阅读、安全 API/迁移 SQL与后台；测试、构建和真实浏览器检查；准备首个 Git 提交。Supabase 公共 URL 和服务密钥待配置，生产链路实测列为证据缺口。
+用户填.env.local或Vercel变量、应用SQL、创建唯一管理员并填UID、配置R2密钥和CORS。用户明确授权后再推送GitHub/部署；不要自行PR或推送。恢复时以Git状态和本文件为准，不重新实现首版。
 
 ## [reader]
 
-### 当前目标 + 成功指标
-Task 1：Next.js 基础与剪贴簿阅读端；共享类型和读取接口符合首版规格，示例明确标识，安全富文本/媒体/搜索具备真实测试，独立文章与归档/相册/关于可构建。
-
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 分支 feat/first-version；不读取 .env.local，不修改父目录原型，不推送或部署。
-- src/lib/types.ts 按规格输出 RichNode/PostDraft/Article/DraftPost/MediaRecord。
-- src/lib/content/document.ts 输出 safeLink/normalizeDocument/documentText/documentHeadings；RichContent 安全 React 渲染受支持节点，不执行 HTML；媒体只解析 storageKey，不加载任意 src。
-- mediaUrl 只接受本地 /assets/ 或 blob/ 前缀对象，公共 origin 必须为 HTTPS 根地址。图片原比例，视频 controls/playsInline 且不自动播放。
-- posts.ts 当前为示例适配器；Task 2 接入云读取。全局链接使用稳定路由，真实空列表不会指向固定示例文章。
-- Next agentRules:false 避免自动追加依赖目录阅读指令；原项目 AGENTS 保持完整。
+src/lib/content/document.ts与RichContent安全渲染，mediaUrl仅本地assets或安全blob键。公开页面已正常格式化，手机hero正常流；无云公共配置显示明确示例，配置齐全查询失败显示错误。
 
 ### 已完成
-- 基础配置/锁文件、本地字体及许可、SVG和3秒MP4素材；粉色开篇/相纸精选/紧凑日记/薄荷绿寄语组成。
-- 首页、独立文章、目录、归档、相册、关于、未知页与读取错误页；搜索分类组合筛选；完整手机导航和低调管理入口。
-- 自审与完整自动验证；报告位于 .superpowers/sdd/2026-10-12-first-version/task-1-report.md。
-
-### 已运行的命令 + 结果
-- npm test RED：24项中8项因占位实现失败；GREEN与最终全套：24/24 PASS。
-- npm run typecheck：PASS；npm run lint：PASS；npm run build：PASS（Next 16.4.0，公开地址存在但空密钥配置）。
-- npm audit --omit=dev：PASS，0漏洞；完整audit：5项high仅在ESLint工具链，braces最新3.0.3仍受影响，无兼容补丁，未降级Next。
-- curl首页/有效文章/未知文章：200/200/404；git diff --check：PASS。
-- npm run dev -- --port 3100：运行中，exec session 27730，供主任务浏览器验证。
-
-### 已知问题和“请勿重读”列表
-- 规格、参考组成已确认，不重新读整份计划或父目录其他风格。
-- ESLint9.39.5有上游deprecated提示；dev-tool braces advisory无兼容补丁；运行时audit为0。
-- Task1未做真实云测试，未接入后台/API；不应将示例适配器称为云接入完成。
-
-### 待验证 / 证据缺口
-主任务后续做真实浏览器手机/平板和搜索/导航/正文布局检查；Task2/3接入后做完整联调。Supabase/R2实际读取写入仍需密钥和云配置。
-
-### 下一步任务
-主任务审查Task1报告与提交，从Task2云存储/管理员API继续；保留公共共享接口。开发服务器3100可用于后续检查。
+阅读任务9640d93经独立审查；后续云适配和布局修复已合入当前功能分支。最终验证使用Codex段的71tests与浏览器证据。
 
 ## [services]
 
-### 当前目标 + 成功指标
-Task 2：安全 Supabase/R2 服务、管理 API、私有草稿与公开快照事务、媒体直传与完成验证。未配置时真实写入失败关闭；接口供 Task3 使用。
-
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- src/lib/config.ts：hasSupabaseConfig 使用直接 NEXT_PUBLIC 环境引用；hasWriteConfig 为服务器调用的布尔检查，不依赖 R2。真实 Secret client 在 server-only 模块，禁用会话持久化。
-- src/lib/auth.ts 输出 getAdminSession()/requireAdmin()；只根据 Supabase getUser 验证身份和 ADMIN_USER_ID。src/lib/supabase/browser.ts 输出客户端 getBrowserSupabase()，未配置返回 null。
-- src/proxy.ts 仅 /admin 和 /api/admin 刷新会话；公共 reader 不接触Cookie。
-- supabase/migrations/202610120001_initial.sql：private draft_posts/media、public read-only published_posts；服务角色独占 RPC，owner+revision 行锁；发布媒体验证、剥离预览 src，事务写入快照。
-- 所有管理 API envelope 与规格一致；主 Agent 批准上传响应增补 uploadHeaders（Content-Type 和 If-None-Match:*），后台 PUT 需发送它们；不手工发送 Content-Length。
-- R2 key 固定 blob/<管理员UUID>/<随机UUID>.<规范扩展名>，account endpoint + path-style；条件写只允许新对象，签名绑定长度/类型/条件，HEAD精确核对后ready。
-- docs/cloud-setup.md 保存接入、权限、CORS、上传重试与证据缺口。报告 .superpowers/sdd/2026-10-12-first-version/task-2-report.md（目录本来已忽略，不强制提交）。
+getUser/ADMIN_USER_ID守卫；服务端secret与新旧别名；SECURITY INVOKER owner/revision事务和私有权限。R2随机owner/media UUID键，path-style账号endpoint，签名类型/长度/If-None-Match，HEAD精确登记ready；浏览器不手工设置Content-Length。
 
 ### 已完成
-服务客户端、读取适配器、六组管理路由、严格富文本/请求/上传校验、Origin防护、SQL事务和setup文档。未改阅读UI。未读 .env.local、未真实云写入、未推送/PR/部署。
-
-### 已运行的命令 + 结果
-- npm test：54/54 PASS（24原有+30服务测试），包含PGlite执行真实迁移、私有权限/快照/修订/媒体/回滚测试。
-- npm run typecheck、npm run lint、npm run build、git diff --check：PASS，最后完整验证在格式整理后。
-- npm audit --omit=dev：PASS，0漏洞；原有5项high仅开发ESLint/braces链，无兼容修复。
-- 独立3101生产服务：首页/示例文章/未知slug=200/200/404；所有管理端点无配置503 NOT_CONFIGURED；缺失/跨站Origin403 CROSS_ORIGIN。此测试进程已关闭；Task1的3100进程未主动关闭。
-
-### 已知问题和“请勿重读”列表
-- 已验证SQL和签名行为；不要改为简单mock echo测试，不声称真实云已接通。
-- R2公共桶中的草稿媒体凭URL可直接访问（既定公共桶架构）；pending孤立对象暂无自动清理；HEAD检验元数据并不扫描/转码字节。
-- 不重读整个实现计划或父目录原型；服务接口、验证边界见setup文档/Task2报告。
-
-### 待验证 / 证据缺口
-Supabase托管角色/REST、SQL真实应用、管理员登录刷新、真实R2/CORS/浏览器File上传与重复PUT拒绝、公开缓存刷新仍需后续凭据环境实测。PGlite不模拟多连接并发调度，仅执行实际事务与锁/修订逻辑。
-
-### 下一步任务
-主任务review Task2并接入Task3后台，发送uploadHeaders，串行保存/发布，409冲突明确提示；真实云配置由用户后续完成。
+服务任务22249c1经独立审查，实际PGlite事务测试保留。真实托管与CORS验收仍属Codex段证据缺口。
 
 ## [admin]
 
-### 当前目标 + 成功指标
-Task 3：手机后台登录/配置提示/稿件列表/编辑预览、真实签名直传、串行保存发布、冲突保留文本、Vercel导入文档。实现与本地验证完成，根任务独立review后最终交付。
-
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 分支feat/first-version，基于22249c1；不读.env.local、不推送、PR、部署或真实云写入。
-- src/lib/admin/save-coordinator.ts为编辑器唯一写队列；请求串行，使用已确认revision；服务响应只更新版本信息，不替换当前draft；仅REVISION_CONFLICT锁写，SLUG_CONFLICT/MEDIA_NOT_READY可修正重试。修订冲突保留文本，可下载JSON后对照。
-- 发布/撤回先保存最新内容；首次create成功用native history更新URL，避免重新请求页面而重置期间输入。
-- Tiptap3.31.4，immediatelyRender:false；自定义image/video属性限定mediaId/storageKey/src/alt/caption；serializeEditorDocument省略编辑器额外属性和空src，保留媒体身份；预览共用RichContent。
-- 原始File直PUT，发送uploadHeaders两个签名头，不手工设置Content-Length；complete确认ready后才插入；不确定结果支持重试complete。
-- 根任务追加授权Supabase legacy aliases：非空canonical优先，否则public回退NEXT_PUBLIC_SUPABASE_ANON_KEY，server回退SUPABASE_SERVICE_ROLE_KEY。公共key直接字面引用供Next内联；secret仅server-only服务模块选取，ADMIN_USER_ID规则保持。
-- /admin/demo仅当前页面本地编辑/下载，无云保存、上传和发布；真实/admin视图以server getAdminSession验证。README/docs/deployment.md与cloud-setup/env.example对齐。
+SaveCoordinator唯一写队列；Tiptap立即SSR渲染关闭、受限节点/属性、序列化保留媒体身份。demo仅当前页试写，不云保存/上传/发布；备份JSON可下载。离开保护依据相对基线实际变化，兼容锚点与无前史返回。
 
 ### 已完成
-Single residual fix：无前史确认back不再直接设置leaving；confirmedBack仅表示请求意图，真实离开由不同页面popstate或原生navigate traverse确认。无目标时beforeunload/站内取消持续有效；后续update、reload、click、pageshow清理意图并重新保护。不使用history.length推断位置，不加框架。
-Task3本地提交bf7cf61；final-fix wave六项定点修复完成：同窗口Link/back导航保护、仅修订冲突锁写、手机hero独立正常流图片区、仅确认公开版本时显示阅读地址、按初始/最近确认内容判断未保存修改、关联阅读源码格式与QA目录gitignore。报告.superpowers/sdd/2026-10-12-first-version/task-3-report.md已追加本轮证据。
-
-### 已运行的命令 + 结果
-- 新真实protectEditorNavigation模块回归RED1：single初始entry确认back后beforeunload不保护；GREEN4/4导航tests，覆盖确认后beforeunload立即保护、update重建marker、Link cancel有效，正常前史一次确认离开，既有Link/hash分类仍PASS。最终typecheck/lint/diff --check PASS；未build/全套/browser扩测，根生产3102/session6091未动。
-- 保存/内容TDD首轮RED7/7失败→GREEN7/7 PASS；alias RED2/2失败→GREEN2/2 PASS；空src回归RED1失败→GREEN3/3内容tests PASS。
-- 最终npm test64/64 PASS，typecheck/lint/build/git diff --check PASS；npm audit --omit=dev：0漏洞。
-- production3102：首页/admin/demo/admin/login/admin/posts/new200，所列Next静态资源全200；login/new显示未配置，GET管理API503 NOT_CONFIGURED。
-- Playwright admin-smoke 390px：改标题/正文加粗/alt/图注→预览均为最新内容；手机工具条横向滚动但页面无横溢出；video controls/playsInline true、autoplay false；demo保存/发布按钮0；离开未保存内容触发beforeunload提醒。截图output/playwright/admin-mobile-preview.png，已人工查看。
-- Final-fix focused：新增slug/media恢复及实际修改判定RED3→GREEN；Link分类RED1→GREEN；浏览器发现native hash先popstate回归RED1→GREEN。最终focused13tests/typecheck/lint/build/git diff --check PASS。
-- 导航浏览器：header/footer Link取消保留新标题；同文档back取消保留页面/标题，确认一次回/admin且marker清理；原生#main无提示；恢复初始标题后marker移除、未卸载编辑器，点击首页无提示。新标签/下载/锚点/外站分类通过unit。
-- hero320/390/740与1440断言无横溢出；手机插画visual top在入口bottom以下，390实测510px>484px；1440保持absolute+display:contents桌面构图。output/playwright/home-mobile-fixed-viewport.png已人工查看，无文字/入口遮挡。
-- final-fix最后production3102 session3258已主动停止，供根任务final build后自行重启；13694/8860也由本任务按重建顺序关闭，未动无关进程。
-
-### 已知问题和“请勿重读”列表
-- 核心保存/内容/alias与无配置行为已验证，不重做全库调查或父目录原型阅读。
-- 浏览器只有既有flowers.svg预加载未使用提示，无编辑器console error；运行时audit0，原开发ESLint5项high advisory仍属既有问题。
-- 自己的output/playwright截图为本地验证生成物未提交；根任务的Codex交接段保留工作区，不纳入本任务commit。
-
-### 待验证 / 证据缺口
-没有真实密钥：托管Supabase登录/刷新/角色/迁移REST、真实R2/CORS/File直传/条件写、托管缓存更新和编码兼容仍需接入后验收。没有声称云已连通。
-
-### 下一步任务
-根任务仅该residual finding的focused review后构建最新源码；运行中的3102/session6091仍由root拥有，本任务未替换.next。
-根任务做一次final-fix scoped re-review，再最终全套和集中浏览器验证；生产3102已停止，根任务build后自行启动给用户预览。新建真实稿件→id与真实云认证/上传仍按既有证据缺口处理，不加鉴权旁路。推送/部署由用户授权。
+后台bf7cf61，集中修复2f6bf93与导航边界9c41602均经复审。最终所有检查与当前生产预览见Codex段；不依赖临时Agent进程或scratch报告恢复。
