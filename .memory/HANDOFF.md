@@ -9,8 +9,8 @@
 interactive_verification
 
 ### 重要文件和近期决定
-- 仓库zhiyu，分支feat/first-version；HEAD8b45fa6，远端已同步，工作区初始干净。父目录原型不动。
-- 既定Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2 bucket johnyehyo/prefix blob/。不读.env.local/真实密钥；旧3102服务当前不可访问。
+- 仓库zhiyu，分支feat/first-version；HEAD569a21c（会话期间外部提交维护功能，已重新核对Git）；远端同步状态本轮未验证。父目录原型不动。
+- 既定Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2 bucket blog/prefix blob/，公共地址 https://pub-d631369681144c86b273231bd9377fe0.r2.dev。不读.env.local/真实密钥；旧3102服务当前不可访问。
 - 维护流程沿用已批准架构/页面，不重新讨论框架。文章删除事务校验owner/revision，移除公开页但保留共享媒体；删除时产品内确认。
 - 新增增量迁移，不修改已可能应用的initial.sql。已上传ready媒体仅按管理员owner列出，作为正文或封面复用；不引入自动R2清理。
 
@@ -34,6 +34,40 @@ Git恢复检查干净/HEAD8b45fa6；服务3102不可访问。只读核对post-li
 
 ### 本轮执行环境
 Homebrew npm存在但node不在PATH，采用Codex提供bundled Node24.19.0运行测试/构建（仅进程PATH调整，未改系统）。Python系统SSL缺CA链，网站检查改用保持TLS校验的curl，不禁用证书验证。
+
+## [Codex-cloud-setup]
+
+### 当前目标 + 成功指标
+解决用户粘贴SQL报 prepared statement 多命令错误；将接入配置从旧共享桶调整到用户新建 blog 桶；说明 R2_ACCESS_KEY_ID 来源。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- 用户已明确确认实际桶名 blog；桶内对象前缀仍为 blob，数据库与正文校验依赖该前缀，不改上传逻辑。
+- 账号 1b78820da96cc4165361c9f7be4d3099；新公共URL https://pub-d631369681144c86b273231bd9377fe0.r2.dev。zhiyu/.env.example、cloud-setup、connect-live、首版spec已同步。未读取或修改.env.local/真实密钥，未修改Vercel环境。
+- 原始迁移保持不变；supabase/setup/query-bootstrap.sql 单DO合并两份迁移，空博客schema执行一次，存在同名表则拒绝；query-maintenance.sql仅用于已执行初始迁移但缺维护字段的项目。bootstrap后不再执行maintenance或原迁移。
+- R2专用Token创建成功页显示Access Key ID与Secret Access Key；Secret离开后不能再次查看，缺完整一对时创建仅授权blog的新Token，不撤销其他应用Token。
+- Git会话期间出现外部提交569a21c，包含维护功能、本轮接入文档和setup-sql.test.ts；本轮未自行commit/push/PR/部署。SQL文件仍未跟踪，勿遗漏提交。
+
+### 已完成
+用PGlite db.query复现原错误，确认未建表；新脚本通过prepared-query建完整schema与增量升级，确认私有表及函数权限、重复初始化保留已有数据。可复制脚本与接入步骤已保存。
+
+### 已运行的命令 + 结果
+- vitest run src/lib/server/setup-sql.test.ts src/lib/server/maintenance.test.ts src/lib/server/r2.test.ts：10/10 PASS。
+- vitest run：18files、89tests PASS。
+- tsc --noEmit：PASS；eslint .：PASS；next build：PASS；git diff --check：PASS。
+- Node使用Codex bundled runtime，仅进程PATH调整。没有真实Supabase执行或真实R2上传验证。
+
+### 已知问题和“请勿重读”列表
+- SQL多命令报错及单DO适配已复现和验证，不需重查原迁移/上传框架。
+- 旧johnyehyo桶是其他应用使用的共享桶，本项目改用blog；不要修改或清理旧桶。
+
+### 待验证 / 证据缺口
+用户尚需在Supabase运行新脚本，在Vercel或本地配置完整凭据、新桶/公共地址并重新部署，在blog桶设置docs/r2-cors.json；真实登录、上传、发布链路尚未确认。
+
+### 下一步任务
+根据用户真实执行结果处理云连接问题；已有维护功能的交互验证与审查状态保留在原Codex段，不能凭本轮SQL配置任务完成声称整个云联调完成。
 
 ## [reader]
 

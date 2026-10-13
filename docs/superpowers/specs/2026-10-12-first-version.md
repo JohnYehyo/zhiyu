@@ -5,7 +5,7 @@
 ## 约束
 - 名称芝语；六色 #81B5DF #F5B1AC #A9BD88 #F7D5DE #F6C66F #A4CEC4。参考父目录 scrapbook.html、styles.css、article.css，只迁移手帐风格。普通导航图标用 lucide-react，后台克制、手机可用。
 - 项目 /Users/johnyehyo/mine/code/web/blob/zhiyu，origin git@github.com:JohnYehyo/zhiyu.git；clone 为空、master 无历史。就地初始化，不改父目录原型，不创建/发布外部项目，不推送或创建 PR。完成后可准备本地首版 commit，推送由最终用户授权。
-- R2 bucket johnyehyo，prefix blob；endpoint 为账号主机（不带 bucket）；公共 URL https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev。Supabase URL https://mgbahqnxoraqmljibsrc.supabase.co 已确认主机响应401（无 API key预期），密钥未知。
+- R2 bucket blog，prefix blob；endpoint 为账号主机（不带 bucket）；公共 URL https://pub-d631369681144c86b273231bd9377fe0.r2.dev。Supabase URL https://mgbahqnxoraqmljibsrc.supabase.co 已确认主机响应401（无 API key预期），密钥未知。
 - 本地 .env.local 已设置公开地址与桶/前缀，密钥空；禁止打印/读取真实密钥，使用 .env.example 名称；不得提交 .env.local。
 - 支持本地字体/SVG/3秒 MP4 示例；未配置数据库时显式标识示例内容。数据库配置齐全却查询失败，不冒充示例成功或吞掉故障。
 - 后台无公开注册，只有 ADMIN_USER_ID 指定账号可写；验证 Supabase getUser，不能仅信 getSession 或客户端状态。
