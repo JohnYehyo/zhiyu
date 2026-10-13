@@ -3,53 +3,43 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-排查用户线上仍显示“真实后台尚未配置”。区分旧Production部署与当前环境缺项，给出逐项无秘密诊断，不修改或读取用户云密钥。
+修复邀请管理员的首次设密码与过期邮件恢复；说明ADMIN_USER_ID只指定权限，会话才证明身份。代码已交付，云端真实邮件/登录仍需用户验收。
 
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 用户要求再次推送后已成功：origin/feat/first-version与本地HEAD均2d70936d86609d9afa2e9e502b59014a4b264528，git ls-remote已核对。先前SSH中断已恢复；无需重做变量适配。Vercel部署是否Ready/Production仍需单独确认，不能只凭push称已上线。
-- 最新配置对齐用户原样提供的Vercel变量：NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY，zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY；带zhiyu非空优先，publishable/secret优先同namespace旧类key，再回退无namespace旧配置。所有reader/browser/server/proxy/service统一publicSupabaseUrl。秘密只server服务使用，不输出值。
-- 实际仓库zhiyu，feat/first-version；本轮569a21c维护、9b1ec28单query SQL与blog桶整合、a07ebe7搜索修复。本轮功能代码06a6033已按用户此前授权推送origin/feat/first-version并核对远端SHA；不创建PR或点击部署。
-- Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2新独立桶blog（旧johnyehyo为其他应用，勿动），对象前缀blob/；public https://pub-d631369681144c86b273231bd9377fe0.r2.dev。不读.env.local/任何密钥。
-- 用户在另一聊天“修复 Supabase SQL 并配置 R2”同步修SQL并确认新桶；其变动已核对保留整合。当前.docs/connect-live.md含最新步骤和中文凭据字段说明；.idea是用户外部生成物，不提交/不删除。
-- 空schema用supabase/setup/query-bootstrap.sql单条DO初始化，包含两份迁移；已有initial但缺维护字段时只query-maintenance.sql。原migration保留，不重复执行。
-- 删除文章用owner/revision行锁事务，cascade公开快照但保留共享media/R2文件。ready素材仅owner可列/复用；媒体JSON保留服务端身份，发布再校验。
-- 搜索用转义imatch，避开PostgREST把LIKE中*改为%的行为；用户输入所有regex字符当字面字符，不暴露任意regex。
+- 仓库zhiyu，分支feat/first-version；本次按用户此前GitHub推送授权提交。Vercel须将最新版本部署到Production；push不等于正式域名已更新。变量可同时选择Production/Preview作用域，Production Branch Tracking应对应此分支。
+- 新增src/lib/auth/account.ts严格输入、/auth/confirm确认页面、POST /api/auth/confirm验证接口、/admin/password恢复/设置页面、POST /api/admin/password更新接口和account-forms.tsx；登录页新增首次设密码/忘记密码入口。
+- 邮件GET只展示按钮，点击才同源POST verifyOtp；仅invite/recovery，再fresh getUser核对ADMIN_USER_ID，外人签出。重设密码复用handleAdmin，更新当前会话，不接受客户端用户ID。不开放注册，不使用service_role代设密码。
+- 用户须在Supabase Authentication URL Configuration设置SiteURL为https://zhiyu-beta.vercel.app，allowlist /auth/confirm；Invite user及Reset password模板分别复制supabase/templates/invite.html和recovery.html。步骤见docs/admin-account.md。模板使用SiteURL/TokenHash，不使用默认fragment回跳。
+- 旧邀请otp_expired且指向localhost；不能修复/复用旧链接。保留已有用户/UID，配置后在/admin/password用同一邮箱申请新恢复邮件→确认→设密码→后台。官方Auth源代码recover/verify支持已有未确认邀请用户的recovery。没有消费用户token、代发邮件、读取密码或.env.local。
+- Supabase URL https://mgbahqnxoraqmljibsrc.supabase.co；配置名称保持NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY及zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY，ADMIN_USER_ID单独设置；带namespace优先，无namespace兼容。公开env保持字面读取以支持Next内联；POSTGRES/JWT变量不使用。
+- R2独立桶blog，prefix blob/，public https://pub-d631369681144c86b273231bd9377fe0.r2.dev；旧共享johnyehyo桶勿动。SQL/R2另一聊天修改已整合。空schema用supabase/setup/query-bootstrap.sql，已有initial时query-maintenance.sql，勿重复执行。
+- .idea是用户外部生成物，不读取/删除/提交。父目录原型不改。
 
 ### 已完成
-- 正式列表标题搜索、状态筛选、20条分页、刷新、取消过期查询、确认删除及删除后页码恢复。
-- 素材库按图片/视频筛选和12条分页，展示文件名/大小/日期，选择插入正文/封面；新上传保留原文件名。
-- 原上传流程继续签名File PUT/HEAD确认/ready登记；失败不插入，重试确认保留反馈。新上传清除旧成功提示。
-- 独立review /root/review_maintenance检查8b45fa6..9b1ec28：owner/revision、private素材、SQL/权限通过，唯一literal*缺陷修复a07ebe7后复审Yes，无Critical/Important遗留。
+- 正式后台稿件搜索/筛选/分页/删除，编辑自动保存/发布/撤回；素材库复用与图片视频File直传R2，PUT→HEAD→ready登记，失败不插入。
+- owner/revision行锁、公开快照、ready媒体校验与Origin/getUser/管理员UID防线；搜索按字面regex转义。
+- 邀请确认/过期恢复/初次设密码流程与中文指南、两份可复制邮件模板。本次仅代码交付，未代改Supabase控制台。
 
 ### 已运行的命令 + 结果
-- 真实本地production3102的新诊断页返回URL/public/service均已提供，但ADMIN_USER_ID格式不正确（只读应用status，未读取实际值）；用户已获知需AuthenticationUserUUID+Vercel变量单独设置。390px截图无横溢出，浏览器无runtime errors，预加载warning已有。
-- 最终20files97tests/typecheck/lint/build/diffcheck PASS。
-- 只读curl正式/admin/login HTTP200仍setup；10个publicJS脚本检测：旧NEXT_PUBLIC_SUPABASE_URL引用存在，无zhiyu适配标记/无公开项目URL或key内联（仅输出booleans，不输出值）。这页只是hasWriteConfig环境检查，不查询DB/R2。需要确认新版Production/变量环境和ADMIN_USER_ID。
-- 本轮逐项诊断3新增测试先RED→GREEN8：缺UID/格式错误与同一守卫一致、SSR显示环境/提交号但不渲染任何凭据值。
-- 本轮变量命名更新：新增5项先RED确认只namespace配置不识别及service取错旧值，GREEN；全套19files94tests/typecheck/lint/build/diffcheck PASS；独立小范围review PASS。不读取.env.local/真实云值，自动注入/真实登录链路仍待部署验收。
-- 最新npm test：18files89tests PASS；typecheck/lint/build、diffcheck PASS。SQL实际PGlite事务与prepared-query，SDK实际查询编码、上传File/headers均覆盖。
-- 新增SQL4、query3、SDK2、页码/UUID/搜索边界等均RED→GREEN；原权限/发布/上传安全测试保留。
-- 浏览器使用仓库真实PostList/PostEditor/MediaPicker代码，临时独立localhost3104测试接口，不改生产鉴权，不连接cloud：搜索/筛选/空结果/分页/删除取消确认通过；素材图片视频→正文→自动保存；图片→封面；实际FilePNG/613377bytesMP4→PUT→complete→ready/插入。故障PUT503/complete409不增加正文媒体，旧成功提示清除。
-- 320/390/768/1024编辑布局无横溢出；390px列表与素材截图人工查看。fixture网络失败产生预期控制台错误，不算生产异常。
-- 真实生产3102：admin/login200；未配置GETposts/GETmedia/DELETE503 NOT_CONFIGURED；跨站DELETE403 CROSS_ORIGIN。
-- 已只读访问 https://zhiyu-beta.vercel.app/admin/login，200但显示真实后台尚未配置。
+- 本轮npm test：23files105tests PASS；typecheck PASS；lint PASS无warning；production build PASS。新账号测试覆盖GET不消费链接、POST过期/外站/错误UID/任意next拒绝、密码无会话/错误UID/不一致拒绝与合法会话更新。
+- 独立只读review_account_flow：无Critical/Important/Minor，另跑账号3files8tests PASS；确认provider recovery支持未确认已有用户。实际SMTP/云模板/session cookie不属于本地验证结论。
+- 本地production3102真实确认页/申请邮件页：390/768px无横溢出，no-referrer存在，错误/缺参数恢复入口正常。错误回应用浏览器仅本地拦截合成401；没有向Supabase提交验证令牌或发送邮件。截图/tmp/zhiyu-account-mobile.png；浏览器account已关闭，server session91774已停止。
+- 既有后台验证97tests/build PASS；真实组件独立临时fixture测试列表/素材/上传故障/手机pad布局通过，不能替代云验收。安全与云读写API测试既有结果保留，不重做全库调查。
 
 ### 已知问题和“请勿重读”列表
-- getUser+UID/Origin/private快照/ready校验和导航已确认，不重新全库搜索鉴权或原型。
-- 公开R2草稿媒体凭URL可访问；无转码/byte扫描/orphan清理，已有披露。
-- 系统npm找不到node，测试使用Codex bundled Node24.19.0，进程PATH临时调整，无系统安装。Python系统SSL CA问题用curl保持校验，不禁用TLS。
-- QA脚本仅/tmp/zhiyu-maint-20261013，勿提交fixture/auth替身或以它证明真实cloud。截图同目录。本轮诊断QA3102/session54396已停止，最终构建完成；可npm run start -- --port 3102启动预览；3104离线QA/session83167已停止，browser maintenance已关闭。旧服务进程不可假定存活。
+- 身份守卫、变量适配、列表/媒体/SQL已充分调查；没有相关变更时勿重读全库。历史setup原因是旧Production+作用域/ADMIN格式，用户最新截图已经是登录页，不能据此断言实际登录成功。
+- R2公共草稿媒体知道URL可访问；暂无转码/内容扫描/孤儿清理。
+- node默认PATH不可靠，使用Codex bundled Node目录临时PATH；不改系统。Python CA问题改curl保持TLS校验。
+- 临时QA/替身在/tmp，不提交；不可将离线合成测试称为真实云验证。
 
 ### 待验证 / 证据缺口
-用户2026-10-13部署截图确认3f34608/06a6033均Ready但为Preview，蓝色Production仍fbe145a；不能因Gitpush成功就称正式域名已更新。已说明最新部署菜单Promote to Production或配置生产分支；未替用户点击发布。
-用户已确认初始没有三个业务表、CORS仅localhostGET，另一聊天已给修复SQL/R2说明。真实Supabase执行、管理员邮箱UID/keys、Vercel变量Redeploy、blog CORS、手机R2跨域FilePUT/HEAD、登录刷新、托管公开缓存仍未确认。
+Supabase正式SiteURL/两份模板是否应用、邮件投递、确认后的真实cookie持久化、密码登录、数据库文章写入与R2真上传均待用户验收。没有凭据授权，不代登录/发邮件，不索取密码/密钥。
 
 ### 下一步任务
-无secret诊断页已完成：97tests/typecheck/lint/build/diffcheck、390px浏览器检查与/root/review_config_diagnostics独立review PASS；已授权同一GitHub分支交付。用户回答“ADMIN_USER_ID不就在.env.local?”，已确认gitignore该文件并解释本地变量不会进入Vercel，需云面板另填UID/选择Production/Redeploy；没有读取本机UID或密钥。新版页面显示真实缺项与commit/env。接下来用户从Authentication复制正确UUID到本地与VercelProduction变量，重新部署并确认正式站版本；没有获得值，不自行改云账户或读取.env.local。
-命名空间配置完成：新增5项行为测试RED→GREEN，最终94tests/typecheck/lint/build/diffcheck PASS，/root/review_env_names只读review PASS。GitHub已成功推送本轮2d70936；下一步确认Vercel新部署及Production分支/推广状态。用户按docs/connect-live.md配置并反馈结果后真实联调；入口/admin/login，不使用/admin/demo发布。不要重写后台。发现新的共享目录修改先校验Git/本文件并保留用户.idea/密钥。
+用户让Vercel最新代码成为Production，按docs/admin-account.md配置Supabase，打开/admin/password申请新邮件、设置密码。随后验证稿件保存与图片视频上传；如有具体错误，按相关接口/配置局部诊断，保留现有管理员UID，不删账号/重做SQL。
 
 ## [Codex-cloud-setup]
 

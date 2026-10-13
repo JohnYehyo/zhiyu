@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 
@@ -69,6 +70,9 @@ export function LoginForm() {
       <button className="admin-button primary" disabled={busy}>
         {busy ? "正在登录…" : "登录"}
       </button>
+      <Link href="/admin/password" className="admin-hint" prefetch={false}>
+        首次设置密码 / 忘记密码
+      </Link>
     </form>
   );
 }

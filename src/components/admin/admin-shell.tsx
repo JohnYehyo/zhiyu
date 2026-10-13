@@ -16,7 +16,11 @@ export function AdminShell({
       <div className="admin-heading">
         <Link href={back} className="admin-back">
           <ArrowLeft size={16} />
-          {back === "/" ? "返回日记" : "全部稿件"}
+          {back === "/"
+            ? "返回日记"
+            : back === "/admin/login"
+              ? "返回登录"
+              : "全部稿件"}
         </Link>
         <h1>
           <PenLine size={20} />

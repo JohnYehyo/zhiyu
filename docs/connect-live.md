@@ -26,7 +26,7 @@ order by table_name, ordinal_position;
 
 ## 2. 管理员
 
-Supabase Authentication → Users 创建邮箱/密码账号并确认邮箱；复制该用户 UID。关闭公开注册，博客不提供注册入口。UID 填入 Vercel 的 ADMIN_USER_ID，邮箱和密码只在登录页输入，不提交仓库或聊天。
+Supabase Authentication → Users 创建邮箱/密码账号并确认邮箱；如果使用Invite user邀请，则先按[邀请与密码步骤](admin-account.md)配置Site URL/两种邮件模板，再接受邮件设置密码。复制该用户 UID。关闭公开注册，博客不提供注册入口。UID 填入 Vercel 的 ADMIN_USER_ID，邮箱和密码只在登录页输入，不提交仓库或聊天。
 
 ## 3. Vercel 环境变量
 
