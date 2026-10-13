@@ -9,7 +9,7 @@
 done
 
 ### 重要文件和近期决定
-- 实际仓库zhiyu，feat/first-version；本轮569a21c维护、9b1ec28单query SQL与blog桶整合、a07ebe7搜索修复。GitHub/Vercel更新沿用用户此前授权同一分支，不创建PR/外部账号操作。
+- 实际仓库zhiyu，feat/first-version；本轮569a21c维护、9b1ec28单query SQL与blog桶整合、a07ebe7搜索修复。本轮功能代码06a6033已按用户此前授权推送origin/feat/first-version并核对远端SHA；不创建PR或点击部署。
 - Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2新独立桶blog（旧johnyehyo为其他应用，勿动），对象前缀blob/；public https://pub-d631369681144c86b273231bd9377fe0.r2.dev。不读.env.local/任何密钥。
 - 用户在另一聊天“修复 Supabase SQL 并配置 R2”同步修SQL并确认新桶；其变动已核对保留整合。当前.docs/connect-live.md含最新步骤和中文凭据字段说明；.idea是用户外部生成物，不提交/不删除。
 - 空schema用supabase/setup/query-bootstrap.sql单条DO初始化，包含两份迁移；已有initial但缺维护字段时只query-maintenance.sql。原migration保留，不重复执行。
@@ -34,7 +34,7 @@ done
 - getUser+UID/Origin/private快照/ready校验和导航已确认，不重新全库搜索鉴权或原型。
 - 公开R2草稿媒体凭URL可访问；无转码/byte扫描/orphan清理，已有披露。
 - 系统npm找不到node，测试使用Codex bundled Node24.19.0，进程PATH临时调整，无系统安装。Python系统SSL CA问题用curl保持校验，不禁用TLS。
-- QA脚本仅/tmp/zhiyu-maint-20261013，勿提交fixture/auth替身或以它证明真实cloud。截图同目录。旧服务进程不可假定存活。
+- QA脚本仅/tmp/zhiyu-maint-20261013，勿提交fixture/auth替身或以它证明真实cloud。截图同目录。正式本地预览http://localhost:3102，session28967（可能随环境切换停止，先检查）；3104离线QA/session83167已停止，browser maintenance已关闭。旧服务进程不可假定存活。
 
 ### 待验证 / 证据缺口
 用户已确认初始没有三个业务表、CORS仅localhostGET，另一聊天已给修复SQL/R2说明。真实Supabase执行、管理员邮箱UID/keys、Vercel变量Redeploy、blog CORS、手机R2跨域FilePUT/HEAD、登录刷新、托管公开缓存仍未确认。
