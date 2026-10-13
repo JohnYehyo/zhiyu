@@ -3,44 +3,48 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-解释账号/权限/发信分工，修复网站把Supabase otp_expired误提示为链接缺参数的问题，兼容默认邮件并明确发送限流。代码修复与本地验证已完成；真实新邮件/登录仍待用户验收。
+等待邮件限流期间核对图片视频接入，验证真实R2签名上传、HEAD、公开访问与播放，不把组件/合成测试称为正式后台登录验收。本轮独立存储验证完成；正式网站从登录到上传发布仍需用户验收。
 
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 仓库zhiyu，feat/first-version；此前bc28875已推送。本次按持续GitHub推送授权提交此分支，不创建PR或代改云控制台。Vercel需最新版本为Production，push不等于正式域名已更新。
-- 用户实际失败地址含query与fragment error=access_denied/error_code=otp_expired：Supabase在到达本站前已拒绝。用户不确定是否点最新邮件，多次申请但邮箱只有两封；不能断定过期原因或实际限流。官方当前默认SMTP整个项目2封/小时，recover同用户60秒间隔，可解释没有新邮件，需actual响应/Auth日志确认。
-- 账号真实存于Supabase Auth数据库；ADMIN_USER_ID只限制单管理员权限，邮箱密码验证/getUser由Supabase。当前不是多管理员系统：将来新增管理员应DB角色/权限，不扩环境ID列表，本次不擅自改权限模型。发信是Supabase resetPasswordForEmail，Vercel只托管网站；邀请与恢复属于同一Auth账号，没有额外邮件系统。
-- src/lib/auth/account.ts严格兼容TokenHash、PKCE code、默认invite/recovery会话片段；readEmailCallback及resolveEmailCallback优先处理两通道provider错误，不回显描述/凭据。Confirmation GET只展示，点击才同源POST分别verifyOtp/exchangeCodeForSession/setSession，再fresh getUser+exactADMIN_USER_ID；错误身份签出。
-- account-forms.tsx在浏览器读取fragment后清除hash，用ref缓存首次合并结果抵抗StrictMode effect replay，取消旧queuedstate。root-email-callback.tsx把SiteURL根页默认控制台邀请回跳只转本站/auth/confirm，白名单参数，不接受外部next。密码POST仍仅当前已验证管理员updateUser，无客户端UID。
-- recovery.ts包装原Supabase请求，真实429或rate代码显示限流，其他错误不回显provider详情；开始每次请求清除之前sent提示，不把提交次数说成新邮件数。
-- Supabase SiteURL=https://zhiyu-beta.vercel.app，Redirect allowlist /auth/confirm；默认邮件已兼容，不必替换模板。已使用TokenHash模板者可保留；若首次新链接被邮件扫描预取消耗，模板是可选保护。docs/admin-account.md已改为简单地址设置与诊断步骤，connect-live同步。
-- namespaced env不变：NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY，zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY；ADMIN_USER_ID独立。优先带namespace，旧名兼容，公开env字面读取。POSTGRES/JWT集成变量不用。Supabase项目mgbahqnxoraqmljibsrc。
-- R2独立桶blog，prefix blob/，public https://pub-d631369681144c86b273231bd9377fe0.r2.dev；旧共享johnyehyo勿动。SQL/R2另一聊天变动已整合。空schema用query-bootstrap.sql，已有initial时query-maintenance.sql，勿重复执行。
-- .idea为用户生成物，不读取/删除/提交；父目录原型不改。未读取.env.local/密码/密钥，未消费用户真实token或代发邮件。
+- 仓库zhiyu，feat/first-version，8132143代码已推送；本轮没有产品代码缺口，新增docs/storage-validation.md保存真实验证证据。按此前GitHub推送授权交付文档/交接，不创建PR或代改云控制台。Vercel仍需最新Production，新变量只对新部署生效。
+- 上传已接入：PostEditor图片/视频/图片封面入口→POST /api/admin/media→XHR原始File PUT→POST complete→R2 HEAD校验type/length→ready→正文/封面；已有素材可复用。签名300秒，Content-Type/length/If-None-Match不可覆盖；正式API仍handleAdmin/getUser/exactUID/Origin。
+- R2独立桶blog，prefix blob/，公共https://pub-d631369681144c86b273231bd9377fe0.r2.dev；旧共享johnyehyo桶勿动。正常Next运行时加载本地配置做诊断，只输出布尔/状态，未读取显示.env.local/真实密钥。真实Supabase media schema仅HEAD，未读取数据内容、未写DB。
+- 真实测试仅新测试对象，固定测试owner为00000000-0000-4000-8000-000000000000，元数据在内存，不绕过正式API鉴权。不上传用户私密文件、不发邮件或操作用户会话。PNG是合成1px/68bytes，MP4为公开MDN花朵示例1128375bytes。不要把本次独立SDK/存储测试称为Vercel完整验收。
+- 已确认的测试对象保留在blob/测试owner/：64c94614-63bb-4ed1-b766-4edc9fc246fd.png、f25d8a92-6447-4097-8fa1-d0c53448a812.mp4。此前失败PNG63002333-e061-4a1e-853c-c4c38f6cd412.png、ada7640c-a9b4-408e-9bd2-a792e2ea38bc.png可能存在，状态未核；无对象删除，不动用户媒体。
+- 用户ADMIN_USER_ID已据其确认同步为新用户（本地.env.local、Vercel Production），不再问是否同步、不读取值。最初Accept invitation成功会话回跳localhost无服务；新Users截图已有成功登录记录，仍不证明博客cookie/设置密码成功。保留该UID/账号，不反复重邀或重做SQL。
+- 用户确认SiteURL保存后回到localhost，现手动改正式域名；回退原因未知。新Reset邮件曾发成功但也回localhost，随后重复点产生otp_expired。现在实际MAIL_RATE_LIMIT，默认SMTP整个项目2封/小时、recover用户60秒间隔；十几分钟未必恢复，不承诺精确reset，暂停连续发送，最后成功发信后留足1小时再只申请一次。
+- SiteURL=https://zhiyu-beta.vercel.app；RedirectURLs需/auth/confirm。默认邮件code/session与TokenHash均支持；根页邀请桥接到本站确认页。provider错误两通道优先，fragment读后清除并缓存抵抗StrictMode；同源POST交换/验证再fresh getUser核UID，密码只当前已验证管理员updateUser。自定义模板可选，不新增邮件系统/公开注册；多管理员将来应DB角色，本轮不改。
+- env名称不变：NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY；zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY；ADMIN_USER_ID独立，namespace优先/旧名回退。公开env字面读取；POSTGRES/JWT集成变量不用。Supabase项目mgbahqnxoraqmljibsrc。
+- SQL/R2另一聊天变动已整合；空schema query-bootstrap.sql，已有initial query-maintenance.sql，不重复执行。.idea为用户生成物不读/删/提交；父目录原型不改。
 
 ### 已完成
-- 博客既有reader/后台维护功能保持：列表搜索/筛选/分页/删除，编辑保存/发布/撤回，图片视频File直传R2与素材复用；owner/revision/Origin/getUser/ready等守卫保留。
-- 首次设密码/恢复流程及默认邮件回跳兼容、过期/发送限流准确反馈。旧链接不能代码复活，保留已有用户/UID，不重做SQL。
+- 原reader/后台稿件搜索筛选分页删除、编辑保存发布撤回、素材库/上传/导航保护保持；owner/revision事务/公开快照/ready媒体/Origin/getUser防线保留。
+- 真实独立R2图片视频上传与公开读取/播放验证，媒体表所需列可用。记录docs/storage-validation.md；临时探针已移出源码，不随应用测试访问cloud。
 
 ### 已运行的命令 + 结果
-- 本次24files113tests、standalone typecheck、lint、production build、diffcheck PASS；无lint warning。新增回跳/权限/错误合并/邮件限流回归先RED后GREEN；恢复3tests最终复验PASS。
-- 只读review_account_flow发现StrictMode清hash重读/fragment错误被query凭据忽略，已修正并复审无遗留；新增recovery限流与sent清除亦无问题。未重复其全套测试或访问provider。
-- 实际本地Next dev3104/AppRouter StrictMode：根邀请合成fragment→确认页、hash清空但待确认状态保留；querycode+fragmentexpired提示过期/无按钮；PKCE合成code点击发正确body；390/768px无横溢出/no-referrer。确认POST拦截合成401，不调用provider。截图/tmp/zhiyu-default-expired.png。
-- 实际RecoveryRequestForm+真实SDK，浏览器仅拦截recover：首个200显示请求提交，第二个429显示限流/旧success移除/provider原始详情不显示。合成admin@example.test，没有真实邮件。browserdefault/mail均关闭，dev sessions6683/81606均停止；最终生产构建完成。
-- 既有97tests后台/SQL/R2安全与临时真实组件fixture验证已通过，不重新全库调查；不能以合成测试称云写入通过。
+- 最新常规npm test：24files113tests PASS（清除所有临时cloud探针后）。产品源码未改，不重复无关build/lint；此前8132143 typecheck/lint/build PASS。
+- 真实配置runtime ready且blog/blob/public一致；不存在随机对象HEAD返回null，正式https://zhiyu-beta.vercel.app与http://localhost:3000 OPTIONS均204，origin/PUT/content-type/if-none-match允许。
+- 真实Supabase media表HEAD HTTP200，包括original_name等所需列，零行内容读取/无DB写入。
+- PNG签名PUT200→真实app completeUpload的HEAD/内存ready通过→公共GET200/SHA字节一致；浏览器imageLoaded=true。
+- MP4签名PUT与HEAD确认通过；公开下载曾TLS35中断，只读重试后HTTP200/SHA一致；既有视频重新completeUpload HEAD复验PASS，无重新上传。Range bytes0-31返回206/32bytes/正确Content-Range。
+- CUA独立localhost3105播放从真实公共R2取数据，视频960x540/5.055秒/readyState4/currentTime=duration/error=null；浏览器与server42232已关闭。
+- /tmp/zhiyu-storage-probe.json、storage-upload.json、media-schema-probe.json、storage-video-head.json、storage-video-public.json与Range文件留安全证据。临时三个probe已复制到/tmp/zhiyu-storage-check-20261013再从src删除；移回需明确临时用途，不提交。早期test-mode故意排除env.local的假缺配置已排除；本机ffmpeg依赖损坏，未改系统，改用MDN视频。
+- 既有Auth113tests、独立review回跳/错误合并/限流通过；维护SQL/素材/上传组件fixture既有验证不重复。仅成功独立存储检查不足以声称正式云后台端到端成功。
 
 ### 已知问题和“请勿重读”列表
-- 账号/守卫/变量适配/SQL/维护已充分调查，相关代码不变勿重读全库。历史setup原因是旧Production/作用域/ADMIN格式，用户已看到登录页。
-- R2草稿媒体凭公共URL可访问，暂无转码/内容扫描/孤儿清理。
-- Node用Codex bundled进程PATH；Python CA问题用curl保持TLS；不改系统。临时QA在/tmp勿提交。
+- 上传入口/SDK签名/CORS/media schema/真实存储已确认，未改时勿重做全库调查或重复上传测试对象。登录仍由用户完成，不能测试替身绕过正式权限。
+- R2公共草稿媒体知道URL可访问；暂无转码/内容扫描/孤儿清理。视频原文件格式播放仍依浏览器支持，本轮MP4已验证。
+- Node用Codex bundled进程PATH；Python CA问题用curl保持TLS；网络偶有TLS/连接中断，不关闭证书验证。不改系统依赖。
+- CUA控制台URLConfiguration直接访问连接关闭，未读/改provider值，勿当云配置已自动核实；临时错误dataURL受策略阻止，不绕过。
 
 ### 待验证 / 证据缺口
-真实SMTP限流与过期原因未取得日志，provider配置未读取。最新Production、真实新邮件、默认PKCE原浏览器cookie、设置密码后登录、DB文章写入/R2真上传待用户验收。
+Vercel Production R2变量未读取核验；当前真实R2成功是本地配置。用户需完成新邮件正确回跳/cookie/设密码/登录后，在正式编辑器上传→保存→刷新→发布→公开文章验收。已据用户修SiteURL，Redirect允许列表与回退原因尚未实际确认。
 
 ### 下一步任务
-让Vercel最新代码成为Production。先停止连续申请，若用默认邮件已收两封，等待发送限额恢复；再在正式网站原浏览器只申请一次，按收到时间用最新邮件立即打开。provider已拒绝的旧邮件不可复用。若新邮件首次立即otp_expired再查邮件扫描/有效期，按实际请求反馈局部诊断。保留用户UID，暂不增加配置/切SMTP/改多用户角色，除非用户明确推进。
+等待邮件额度恢复由用户原浏览器在正式/admin/password只申请一次最新邮件；若仍localhost查SiteURL/allowlist/模板实际值，不再改UID/SQL或猜发送失败。登录正式后台后优先验证图片/视频保存发布与Vercel变量，不重做已验证的真实独立R2链路。测试对象仅保留证据，若需清理先确认路径范围与存在状态，不删除其他媒体。
 
 ## [Codex-cloud-setup]
 
