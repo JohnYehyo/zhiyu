@@ -21,3 +21,11 @@
 
 ## 尚未验证的外部链路
 没有真实凭据：托管Supabase迁移/REST角色、登录刷新、真实R2 CORS/File PUT/HEAD/条件写和Vercel缓存仍待接入后验收。PGlite与本地浏览器不等同云接通。公共桶草稿媒体可凭URL访问，无视频转码或孤立对象自动清理；详见[服务接入](cloud-setup.md)与[Vercel导入](deployment.md)。
+
+## 文章维护更新（2026-10-13）
+
+- 18files/89tests、typecheck/lint/build、diffcheck PASS，代码审查与搜索定点复审通过。
+- 新增owner/revision事务删除（保留共享媒体）、搜索/状态/分页、ready素材复用；增量及单query初始化SQL已执行PGlite验证。
+- PostgREST字面搜索改imatch并转义完整regex字符；实际SDK编码与PostgreSQL匹配边界均覆盖。
+- 仓库真实组件在独立临时测试接口中通过浏览器搜索/分页/删除确认/素材→正文及封面/实际PNG与MP4 File上传/自动保存/故障不插入检查；手机和平板无横溢出。该接口不进入仓库，不提供生产鉴权旁路，不等同cloud成功。
+- 正式生产API无配置503、跨站删除403；线上/admin/login仍未配置，真实cloud验收待用户完成[接入配置](connect-live.md)。最新独立R2桶是blog，前缀blob/，旧桶勿动。

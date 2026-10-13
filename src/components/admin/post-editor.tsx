@@ -311,6 +311,7 @@ export function PostEditor({
   async function handleFile(file: File) {
     const { kind, cover } = uploadTarget.current;
     let pending: PendingUpload | undefined;
+    setMessage("");
     setUpload({ percent: 0, busy: true, kind, cover });
     try {
       validateUpload(file, kind);

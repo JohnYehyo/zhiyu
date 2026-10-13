@@ -54,6 +54,8 @@ Cloudflare R2 Object Storage → Overview → Account Details → API Tokens →
 
 **R2_ACCESS_KEY_ID 在哪里看：**创建成功页的 S3 客户端凭据中，复制 **Access Key ID**；同一页的 **Secret Access Key** 填入 R2_SECRET_ACCESS_KEY。不是 Account ID，也不是 API Token 的 value。Secret Access Key 离开创建成功页后无法再次查看；若没有保存完整的一对凭据，创建一个仅授权 blog 桶的新 token 并保存两项。不要撤销其他应用使用的 token，不在聊天中发送密钥。
 
+中文界面对应：上面的“访问密钥 ID”填入 `R2_ACCESS_KEY_ID`；下面的“机密访问密钥”填入 `R2_SECRET_ACCESS_KEY`。
+
 已确认新桶是 `blog`（不是 `blob`），S3 API 为 `https://1b78820da96cc4165361c9f7be4d3099.r2.cloudflarestorage.com/blog`。代码自动用账号主机作为 endpoint，并单独传入桶名，不需要新增 endpoint 环境变量。`R2_KEY_PREFIX=blob` 是桶内对象前缀，保留它以匹配数据库与正文校验。公共地址换为上表的新地址。
 
 在 blog 桶设置 CORS，复制 docs/r2-cors.json。该文件包含准确网站 origin、必要本地测试端口、PUT/GET/HEAD、Content-Type/If-None-Match。
