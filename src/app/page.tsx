@@ -7,6 +7,7 @@ import { FlowerMark } from "@/components/flower-mark";
 import { PostMeta } from "@/components/post-card";
 import { Journal } from "@/components/journal";
 import { DemoNotice } from "@/components/demo-notice";
+import { RootEmailCallback } from "@/components/admin/root-email-callback";
 
 export default async function Home() {
   const posts = await getPublishedPosts();
@@ -14,6 +15,7 @@ export default async function Home() {
   const cover = featured ? mediaUrl(featured.coverKey) : "";
   return (
     <main id="main">
+      <RootEmailCallback />
       <section className="hero paper-grain" aria-labelledby="hero-title">
         <div className="hero-copy">
           <span className="eyebrow">A SCRAPBOOK, JUST FOR YOU</span>

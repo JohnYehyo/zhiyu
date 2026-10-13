@@ -34,4 +34,24 @@ it("opening or prefetching an email page never redeems its one-time link", async
   );
   expect(invalid).toContain("申请设置密码邮件");
   expect(verify).not.toHaveBeenCalled();
+  const expired = renderToStaticMarkup(
+    await ConfirmPage({
+      searchParams: Promise.resolve({
+        error: "access_denied",
+        error_code: "otp_expired",
+        error_description: "private-provider-detail",
+      }),
+    }),
+  );
+  expect(expired).toContain("已过期或已使用");
+  expect(expired).not.toContain("链接不完整");
+  expect(expired).not.toContain("private-provider-detail");
+  const code = renderToStaticMarkup(
+    await ConfirmPage({
+      searchParams: Promise.resolve({ code: "synthetic-pkce-code" }),
+    }),
+  );
+  expect(code).toContain("确认并设置密码");
+  expect(code).not.toContain("链接不完整");
+  expect(verify).not.toHaveBeenCalled();
 });

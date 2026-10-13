@@ -5,12 +5,26 @@ const state = vi.hoisted(() => ({
   userError: false,
   expired: false,
   verify: vi.fn(),
+  exchange: vi.fn(),
+  session: vi.fn(),
   update: vi.fn(),
   signOut: vi.fn(),
 }));
 vi.mock("../supabase/server", () => ({
   getServerSupabase: async () => ({
     auth: {
+      exchangeCodeForSession: async (code: string) => {
+        state.exchange(code);
+        return {
+          error: state.expired ? { message: "private-code-error" } : null,
+        };
+      },
+      setSession: async (input: unknown) => {
+        state.session(input);
+        return {
+          error: state.expired ? { message: "private-session-error" } : null,
+        };
+      },
       verifyOtp: async (input: unknown) => {
         state.verify(input);
         return {
@@ -39,6 +53,8 @@ beforeEach(() => {
   state.user = { id: owner };
   state.userError = state.expired = false;
   state.verify.mockClear();
+  state.exchange.mockClear();
+  state.session.mockClear();
   state.update.mockClear();
   state.signOut.mockClear();
   vi.stubEnv("NEXT_PUBLIC_zhiyu_SUPABASE_URL", "https://test.supabase.co");
@@ -55,6 +71,44 @@ function request(path: string, body: unknown, origin = "http://localhost") {
   });
 }
 const token = { tokenHash: "synthetic-invitation-hash", type: "invite" };
+
+it("default email callbacks establish server cookies then check the administrator, without echoing credentials", async () => {
+  const code = { code: "synthetic-pkce-code" };
+  let result = await confirm(request("/api/auth/confirm", code));
+  expect(result.status).toBe(200);
+  expect(state.exchange).toHaveBeenCalledWith(code.code);
+  expect(await result.text()).not.toContain(code.code);
+  expect(state.verify).not.toHaveBeenCalled();
+  const session = {
+    accessToken: "synthetic-access",
+    refreshToken: "synthetic-refresh",
+  };
+  result = await confirm(request("/api/auth/confirm", session));
+  expect(result.status).toBe(200);
+  expect(state.session).toHaveBeenCalledWith({
+    access_token: session.accessToken,
+    refresh_token: session.refreshToken,
+  });
+  expect(await result.text()).not.toMatch(/synthetic-access|synthetic-refresh/);
+  state.user = { id: "22222222-2222-4222-8222-222222222222" };
+  expect((await confirm(request("/api/auth/confirm", session))).status).toBe(
+    403,
+  );
+  expect(state.signOut).toHaveBeenCalledWith({ scope: "local" });
+  state.expired = true;
+  result = await confirm(request("/api/auth/confirm", code));
+  expect(result.status).toBe(401);
+  expect(await result.text()).not.toMatch(/private-code|synthetic-pkce/);
+  state.exchange.mockClear();
+  expect(
+    (
+      await confirm(
+        request("/api/auth/confirm", code, "https://foreign.example"),
+      )
+    ).status,
+  ).toBe(403);
+  expect(state.exchange).not.toHaveBeenCalled();
+});
 
 it("confirmation creates a session only through OTP verification followed by a verified administrator", async () => {
   const result = await confirm(request("/api/auth/confirm", token));

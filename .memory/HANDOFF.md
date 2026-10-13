@@ -3,43 +3,44 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-修复邀请管理员的首次设密码与过期邮件恢复；说明ADMIN_USER_ID只指定权限，会话才证明身份。代码已交付，云端真实邮件/登录仍需用户验收。
+解释账号/权限/发信分工，修复网站把Supabase otp_expired误提示为链接缺参数的问题，兼容默认邮件并明确发送限流。代码修复与本地验证已完成；真实新邮件/登录仍待用户验收。
 
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 仓库zhiyu，分支feat/first-version；本次按用户此前GitHub推送授权提交。Vercel须将最新版本部署到Production；push不等于正式域名已更新。变量可同时选择Production/Preview作用域，Production Branch Tracking应对应此分支。
-- 新增src/lib/auth/account.ts严格输入、/auth/confirm确认页面、POST /api/auth/confirm验证接口、/admin/password恢复/设置页面、POST /api/admin/password更新接口和account-forms.tsx；登录页新增首次设密码/忘记密码入口。
-- 邮件GET只展示按钮，点击才同源POST verifyOtp；仅invite/recovery，再fresh getUser核对ADMIN_USER_ID，外人签出。重设密码复用handleAdmin，更新当前会话，不接受客户端用户ID。不开放注册，不使用service_role代设密码。
-- 用户须在Supabase Authentication URL Configuration设置SiteURL为https://zhiyu-beta.vercel.app，allowlist /auth/confirm；Invite user及Reset password模板分别复制supabase/templates/invite.html和recovery.html。步骤见docs/admin-account.md。模板使用SiteURL/TokenHash，不使用默认fragment回跳。
-- 旧邀请otp_expired且指向localhost；不能修复/复用旧链接。保留已有用户/UID，配置后在/admin/password用同一邮箱申请新恢复邮件→确认→设密码→后台。官方Auth源代码recover/verify支持已有未确认邀请用户的recovery。没有消费用户token、代发邮件、读取密码或.env.local。
-- Supabase URL https://mgbahqnxoraqmljibsrc.supabase.co；配置名称保持NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY及zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY，ADMIN_USER_ID单独设置；带namespace优先，无namespace兼容。公开env保持字面读取以支持Next内联；POSTGRES/JWT变量不使用。
-- R2独立桶blog，prefix blob/，public https://pub-d631369681144c86b273231bd9377fe0.r2.dev；旧共享johnyehyo桶勿动。SQL/R2另一聊天修改已整合。空schema用supabase/setup/query-bootstrap.sql，已有initial时query-maintenance.sql，勿重复执行。
-- .idea是用户外部生成物，不读取/删除/提交。父目录原型不改。
+- 仓库zhiyu，feat/first-version；此前bc28875已推送。本次按持续GitHub推送授权提交此分支，不创建PR或代改云控制台。Vercel需最新版本为Production，push不等于正式域名已更新。
+- 用户实际失败地址含query与fragment error=access_denied/error_code=otp_expired：Supabase在到达本站前已拒绝。用户不确定是否点最新邮件，多次申请但邮箱只有两封；不能断定过期原因或实际限流。官方当前默认SMTP整个项目2封/小时，recover同用户60秒间隔，可解释没有新邮件，需actual响应/Auth日志确认。
+- 账号真实存于Supabase Auth数据库；ADMIN_USER_ID只限制单管理员权限，邮箱密码验证/getUser由Supabase。当前不是多管理员系统：将来新增管理员应DB角色/权限，不扩环境ID列表，本次不擅自改权限模型。发信是Supabase resetPasswordForEmail，Vercel只托管网站；邀请与恢复属于同一Auth账号，没有额外邮件系统。
+- src/lib/auth/account.ts严格兼容TokenHash、PKCE code、默认invite/recovery会话片段；readEmailCallback及resolveEmailCallback优先处理两通道provider错误，不回显描述/凭据。Confirmation GET只展示，点击才同源POST分别verifyOtp/exchangeCodeForSession/setSession，再fresh getUser+exactADMIN_USER_ID；错误身份签出。
+- account-forms.tsx在浏览器读取fragment后清除hash，用ref缓存首次合并结果抵抗StrictMode effect replay，取消旧queuedstate。root-email-callback.tsx把SiteURL根页默认控制台邀请回跳只转本站/auth/confirm，白名单参数，不接受外部next。密码POST仍仅当前已验证管理员updateUser，无客户端UID。
+- recovery.ts包装原Supabase请求，真实429或rate代码显示限流，其他错误不回显provider详情；开始每次请求清除之前sent提示，不把提交次数说成新邮件数。
+- Supabase SiteURL=https://zhiyu-beta.vercel.app，Redirect allowlist /auth/confirm；默认邮件已兼容，不必替换模板。已使用TokenHash模板者可保留；若首次新链接被邮件扫描预取消耗，模板是可选保护。docs/admin-account.md已改为简单地址设置与诊断步骤，connect-live同步。
+- namespaced env不变：NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY，zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY；ADMIN_USER_ID独立。优先带namespace，旧名兼容，公开env字面读取。POSTGRES/JWT集成变量不用。Supabase项目mgbahqnxoraqmljibsrc。
+- R2独立桶blog，prefix blob/，public https://pub-d631369681144c86b273231bd9377fe0.r2.dev；旧共享johnyehyo勿动。SQL/R2另一聊天变动已整合。空schema用query-bootstrap.sql，已有initial时query-maintenance.sql，勿重复执行。
+- .idea为用户生成物，不读取/删除/提交；父目录原型不改。未读取.env.local/密码/密钥，未消费用户真实token或代发邮件。
 
 ### 已完成
-- 正式后台稿件搜索/筛选/分页/删除，编辑自动保存/发布/撤回；素材库复用与图片视频File直传R2，PUT→HEAD→ready登记，失败不插入。
-- owner/revision行锁、公开快照、ready媒体校验与Origin/getUser/管理员UID防线；搜索按字面regex转义。
-- 邀请确认/过期恢复/初次设密码流程与中文指南、两份可复制邮件模板。本次仅代码交付，未代改Supabase控制台。
+- 博客既有reader/后台维护功能保持：列表搜索/筛选/分页/删除，编辑保存/发布/撤回，图片视频File直传R2与素材复用；owner/revision/Origin/getUser/ready等守卫保留。
+- 首次设密码/恢复流程及默认邮件回跳兼容、过期/发送限流准确反馈。旧链接不能代码复活，保留已有用户/UID，不重做SQL。
 
 ### 已运行的命令 + 结果
-- 本轮npm test：23files105tests PASS；typecheck PASS；lint PASS无warning；production build PASS。新账号测试覆盖GET不消费链接、POST过期/外站/错误UID/任意next拒绝、密码无会话/错误UID/不一致拒绝与合法会话更新。
-- 独立只读review_account_flow：无Critical/Important/Minor，另跑账号3files8tests PASS；确认provider recovery支持未确认已有用户。实际SMTP/云模板/session cookie不属于本地验证结论。
-- 本地production3102真实确认页/申请邮件页：390/768px无横溢出，no-referrer存在，错误/缺参数恢复入口正常。错误回应用浏览器仅本地拦截合成401；没有向Supabase提交验证令牌或发送邮件。截图/tmp/zhiyu-account-mobile.png；浏览器account已关闭，server session91774已停止。
-- 既有后台验证97tests/build PASS；真实组件独立临时fixture测试列表/素材/上传故障/手机pad布局通过，不能替代云验收。安全与云读写API测试既有结果保留，不重做全库调查。
+- 本次24files113tests、standalone typecheck、lint、production build、diffcheck PASS；无lint warning。新增回跳/权限/错误合并/邮件限流回归先RED后GREEN；恢复3tests最终复验PASS。
+- 只读review_account_flow发现StrictMode清hash重读/fragment错误被query凭据忽略，已修正并复审无遗留；新增recovery限流与sent清除亦无问题。未重复其全套测试或访问provider。
+- 实际本地Next dev3104/AppRouter StrictMode：根邀请合成fragment→确认页、hash清空但待确认状态保留；querycode+fragmentexpired提示过期/无按钮；PKCE合成code点击发正确body；390/768px无横溢出/no-referrer。确认POST拦截合成401，不调用provider。截图/tmp/zhiyu-default-expired.png。
+- 实际RecoveryRequestForm+真实SDK，浏览器仅拦截recover：首个200显示请求提交，第二个429显示限流/旧success移除/provider原始详情不显示。合成admin@example.test，没有真实邮件。browserdefault/mail均关闭，dev sessions6683/81606均停止；最终生产构建完成。
+- 既有97tests后台/SQL/R2安全与临时真实组件fixture验证已通过，不重新全库调查；不能以合成测试称云写入通过。
 
 ### 已知问题和“请勿重读”列表
-- 身份守卫、变量适配、列表/媒体/SQL已充分调查；没有相关变更时勿重读全库。历史setup原因是旧Production+作用域/ADMIN格式，用户最新截图已经是登录页，不能据此断言实际登录成功。
-- R2公共草稿媒体知道URL可访问；暂无转码/内容扫描/孤儿清理。
-- node默认PATH不可靠，使用Codex bundled Node目录临时PATH；不改系统。Python CA问题改curl保持TLS校验。
-- 临时QA/替身在/tmp，不提交；不可将离线合成测试称为真实云验证。
+- 账号/守卫/变量适配/SQL/维护已充分调查，相关代码不变勿重读全库。历史setup原因是旧Production/作用域/ADMIN格式，用户已看到登录页。
+- R2草稿媒体凭公共URL可访问，暂无转码/内容扫描/孤儿清理。
+- Node用Codex bundled进程PATH；Python CA问题用curl保持TLS；不改系统。临时QA在/tmp勿提交。
 
 ### 待验证 / 证据缺口
-Supabase正式SiteURL/两份模板是否应用、邮件投递、确认后的真实cookie持久化、密码登录、数据库文章写入与R2真上传均待用户验收。没有凭据授权，不代登录/发邮件，不索取密码/密钥。
+真实SMTP限流与过期原因未取得日志，provider配置未读取。最新Production、真实新邮件、默认PKCE原浏览器cookie、设置密码后登录、DB文章写入/R2真上传待用户验收。
 
 ### 下一步任务
-用户让Vercel最新代码成为Production，按docs/admin-account.md配置Supabase，打开/admin/password申请新邮件、设置密码。随后验证稿件保存与图片视频上传；如有具体错误，按相关接口/配置局部诊断，保留现有管理员UID，不删账号/重做SQL。
+让Vercel最新代码成为Production。先停止连续申请，若用默认邮件已收两封，等待发送限额恢复；再在正式网站原浏览器只申请一次，按收到时间用最新邮件立即打开。provider已拒绝的旧邮件不可复用。若新邮件首次立即otp_expired再查邮件扫描/有效期，按实际请求反馈局部诊断。保留用户UID，暂不增加配置/切SMTP/改多用户角色，除非用户明确推进。
 
 ## [Codex-cloud-setup]
 

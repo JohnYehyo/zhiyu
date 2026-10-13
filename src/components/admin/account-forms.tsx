@@ -1,34 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { adminRequest } from "@/lib/admin/api";
-import { parsePassword, type ConfirmationType } from "@/lib/auth/account";
+import { requestPasswordRecovery } from "@/lib/auth/recovery";
+import {
+  parsePassword,
+  readEmailCallback,
+  resolveEmailCallback,
+  type EmailCallback,
+} from "@/lib/auth/account";
 
 export function EmailConfirmationForm({
-  tokenHash,
-  type,
+  callback,
 }: {
-  tokenHash: string;
-  type: ConfirmationType;
+  callback: EmailCallback;
 }) {
   const router = useRouter();
+  const [link, setLink] = useState(callback);
+  const captured = useRef<{
+    callback: EmailCallback;
+    value: EmailCallback;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    // Retain the first browser-only result when StrictMode replays this effect.
+    if (!captured.current || captured.current.callback !== callback) {
+      const fragment = readEmailCallback(
+        new URLSearchParams(window.location.hash.slice(1)),
+      );
+      captured.current = {
+        callback,
+        value: resolveEmailCallback(callback, fragment),
+      };
+    }
+    // Fragments never reach the server; remove session credentials from browser history.
+    if (window.location.hash)
+      window.history.replaceState(
+        window.history.state,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    const value = captured.current.value;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setLink(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [callback]);
+  const input = link && "input" in link ? link.input : null;
+  const linkError =
+    link && "error" in link
+      ? link.error === "expired"
+        ? "Supabase 已拒绝这封邮件：链接已过期或已使用。请申请新邮件，并打开最新一封。"
+        : "这封邮件未能完成验证，或链接不完整。请申请新邮件，并打开最新一封。"
+      : "";
   return (
     <form
       className="admin-login"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (!input || busy) return;
         setBusy(true);
         setError("");
         try {
           const result = await adminRequest<{ redirectTo: string }>(
             "/api/auth/confirm",
             "POST",
-            { tokenHash, type },
+            input,
           );
           if (result.redirectTo !== "/admin/password")
             throw new Error("确认结果未完成，请申请新邮件。");
@@ -40,22 +84,28 @@ export function EmailConfirmationForm({
         }
       }}
     >
-      <p>
-        {type === "invite"
-          ? "确认这封邀请后，为管理员账号设置密码。"
-          : "确认这封邮件后，为管理员账号设置新密码。"}
-        只有按下按钮才会验证邮件链接。
-      </p>
+      {input ? (
+        <p>继续验证这封邮件，为管理员账号设置密码。</p>
+      ) : !link ? (
+        <p role="status">正在读取邮件验证结果…</p>
+      ) : null}
+      {linkError && (
+        <p className="admin-error" role="alert">
+          {linkError}
+        </p>
+      )}
       {error && (
         <p className="admin-error" role="alert">
           {error}
         </p>
       )}
-      <button className="admin-button primary" disabled={busy}>
-        {busy ? "正在确认…" : "确认并设置密码"}
-      </button>
+      {input && (
+        <button className="admin-button primary" disabled={busy}>
+          {busy ? "正在确认…" : "确认并设置密码"}
+        </button>
+      )}
       <Link href="/admin/password" className="admin-hint" prefetch={false}>
-        链接失效？申请新邮件
+        申请设置密码邮件
       </Link>
     </form>
   );
@@ -72,18 +122,16 @@ export function RecoveryRequestForm() {
         event.preventDefault();
         setBusy(true);
         setError("");
+        setSent(false);
         const fields = new FormData(event.currentTarget);
         try {
           const client = getBrowserSupabase();
           if (!client) throw new Error("账号服务尚未配置。");
-          const result = await client.auth.resetPasswordForEmail(
-            String(fields.get("email")).trim(),
-            { redirectTo: `${window.location.origin}/auth/confirm` },
+          await requestPasswordRecovery(
+            client.auth,
+            String(fields.get("email")),
+            `${window.location.origin}/auth/confirm`,
           );
-          if (result.error)
-            throw new Error(
-              "邮件暂时无法发送，请稍后重试；也请检查 Supabase 邮件与回跳配置。",
-            );
           setSent(true);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "邮件发送失败。");

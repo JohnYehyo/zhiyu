@@ -17,15 +17,25 @@ export async function POST(request: Request) {
     if (!hasWriteConfig()) unavailable();
     const input = parseConfirmation(await readJson(request));
     const client = await getServerSupabase();
-    const result = await client.auth.verifyOtp({
-      token_hash: input.tokenHash,
-      type: input.type,
-    });
+    const result =
+      "code" in input
+        ? await client.auth.exchangeCodeForSession(input.code)
+        : "tokenHash" in input
+          ? await client.auth.verifyOtp({
+              token_hash: input.tokenHash,
+              type: input.type,
+            })
+          : await client.auth.setSession({
+              access_token: input.accessToken,
+              refresh_token: input.refreshToken,
+            });
     if (result.error)
       throw new ServiceError(
         401,
         "LINK_INVALID",
-        "邮件链接无效、已使用或已过期，请申请一封新邮件。",
+        "code" in input
+          ? "邮件验证未完成。请在申请邮件的同一浏览器中打开最新邮件；必要时重新申请。"
+          : "邮件链接无效、已使用或已过期，请申请一封新邮件。",
       );
     const { data, error } = await client.auth.getUser();
     try {
