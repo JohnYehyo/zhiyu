@@ -57,7 +57,7 @@ it("article search requests an owned, literal title match and a bounded ordered 
   const query = new URL(state.url).searchParams;
   expect(query.get("owner_id")).toBe(`eq.${owner}`);
   expect(query.get("status")).toBe("eq.changed");
-  expect(query.get("draft->>title")).toBe("ilike.%今天,(雨)\\%\\_%");
+  expect(query.get("draft->>title")).toBe("imatch.今天,\\(雨\\)%_");
   expect(query.get("offset")).toBe("10");
   expect(query.get("limit")).toBe("10");
   expect(query.get("order")).toBe("updated_at.desc,id.asc");

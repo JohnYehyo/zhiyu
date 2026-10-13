@@ -155,22 +155,27 @@ it("public roles cannot execute article deletion or read media metadata", async 
     await db.exec("reset role");
   }
 });
-it("title search treats SQL wildcards and punctuation as literal text", async () => {
+it("title search treats PostgREST stars, regex metacharacters and SQL wildcards as literal text", async () => {
   await db.query(
     "update public.draft_posts set draft=jsonb_set(draft,'{title}',to_jsonb($1::text)) where id=$2",
-    ["今天,(雨)%_", id],
+    ["今天,(雨)%_第*天\\.[$^+?{}|]", id],
   );
   const result = await db.query<{ id: string }>(
-    "select id from public.draft_posts where owner_id=$1 and draft->>'title' ilike $2",
+    "select id from public.draft_posts where owner_id=$1 and draft->>'title' ~* $2",
     [owner, literalSearchPattern("(雨)%_")],
   );
   expect(result.rows).toEqual([{ id }]);
   expect(
     (
       await db.query(
-        "select id from public.draft_posts where draft->>'title' ilike $1",
+        "select id from public.draft_posts where draft->>'title' ~* $1",
         [literalSearchPattern("(雨)xx")],
       )
     ).rows,
   ).toHaveLength(0);
+  for (const text of ["第*天", "\\.[$^+?{}|]", "%_", "(雨)"]) {
+    expect((await db.query("select id from public.draft_posts where owner_id=$1 and draft->>'title' ~* $2", [owner, literalSearchPattern(text)])).rows).toEqual([{ id }]);
+  }
+  await db.query("update public.draft_posts set draft=jsonb_set(draft,'{title}',to_jsonb('第3天'::text)) where id=$1", [other]);
+  expect((await db.query("select id from public.draft_posts where draft->>'title' ~* $1", [literalSearchPattern("第*天")])).rows).toEqual([{ id }]);
 });

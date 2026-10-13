@@ -13,7 +13,7 @@ it("parses bounded pages and trims a title search without losing punctuation", (
       ),
     ),
   ).toEqual({ page: 2, pageSize: 10, status: "changed", q: "今天,(雨)%_" });
-  expect(literalSearchPattern("a%_\\b")).toBe("%a\\%\\_\\\\b%");
+  expect(literalSearchPattern("a%_\\b*.(雨)")).toBe("a%_\\\\b\\*\\.\\(雨\\)");
 });
 it("rejects invalid pagination, duplicate fields, and unknown filters", () => {
   for (const value of [

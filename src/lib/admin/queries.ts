@@ -75,5 +75,7 @@ export function parseMediaQuery(params: URLSearchParams): MediaQuery {
   };
 }
 export function literalSearchPattern(value: string): string {
-  return `%${value.replace(/[\\%_]/g, "\\$&")}%`;
+  // PostgREST LIKE rewrites every '*' to '%'. IMATCH preserves escaped
+  // literal regex characters while still performing a substring search.
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -96,7 +96,7 @@ export async function listDraftPage(owner: string, options: PostQuery): Promise<
     .eq("owner_id", owner);
   if (options.status !== "all") query = query.eq("status", options.status);
   if (options.q)
-    query = query.ilike("draft->>title", literalSearchPattern(options.q));
+    query = query.filter("draft->>title", "imatch", literalSearchPattern(options.q));
   const start = (options.page - 1) * options.pageSize;
   const { data, error, count } = await query
     .order("updated_at", { ascending: false })
