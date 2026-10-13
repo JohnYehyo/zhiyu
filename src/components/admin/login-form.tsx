@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getBrowserSupabase } from "@/lib/supabase/browser";
+import { adminRequest } from "@/lib/admin/api";
 
 export function LoginForm() {
   const router = useRouter();
@@ -14,30 +14,21 @@ export function LoginForm() {
       className="admin-login"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (busy) return;
         setBusy(true);
         setError("");
         try {
           const fields = new FormData(event.currentTarget);
-          const client = getBrowserSupabase();
-          if (!client) throw new Error("登录配置尚未就绪。");
-          const result = await client.auth.signInWithPassword({
-            email: String(fields.get("email")),
-            password: String(fields.get("password")),
-          });
-          if (result.error)
-            throw new Error("邮箱或密码不正确，或登录服务暂不可用。");
-          // The server decides authorization; signing in alone grants no write access.
-          const response = await fetch("/api/admin/posts", {
-            cache: "no-store",
-          });
-          if (!response.ok) {
-            await client.auth.signOut();
-            throw new Error(
-              response.status === 403
-                ? "该账号没有管理员权限。"
-                : "后台暂不可用，请检查配置后重试。",
-            );
-          }
+          const result = await adminRequest<{ redirectTo: string }>(
+            "/api/auth/login",
+            "POST",
+            {
+              email: String(fields.get("email")),
+              password: String(fields.get("password")),
+            },
+          );
+          if (result.redirectTo !== "/admin")
+            throw new Error("登录结果尚未确认，请重试。");
           router.replace("/admin");
           router.refresh();
         } catch (cause) {

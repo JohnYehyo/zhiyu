@@ -10,6 +10,12 @@ export async function requestPasswordRecovery(
     redirectTo,
   });
   if (!error) return;
+  if (error.status === 0)
+    throw new ServiceError(
+      503,
+      "MAIL_NETWORK_UNAVAILABLE",
+      "网站未能连接邮件服务，发送结果尚未确认。请先查看邮箱，避免连续重复申请。",
+    );
   if (
     error.status === 429 ||
     ["over_email_send_rate_limit", "over_request_rate_limit"].includes(

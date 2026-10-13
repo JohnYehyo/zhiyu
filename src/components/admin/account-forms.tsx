@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { adminRequest } from "@/lib/admin/api";
-import { requestPasswordRecovery } from "@/lib/auth/recovery";
 import {
   parsePassword,
   readEmailCallback,
@@ -120,18 +118,19 @@ export function RecoveryRequestForm() {
       className="admin-login"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (busy) return;
         setBusy(true);
         setError("");
         setSent(false);
         const fields = new FormData(event.currentTarget);
         try {
-          const client = getBrowserSupabase();
-          if (!client) throw new Error("账号服务尚未配置。");
-          await requestPasswordRecovery(
-            client.auth,
-            String(fields.get("email")),
-            `${window.location.origin}/auth/confirm`,
+          const result = await adminRequest<{ accepted: boolean }>(
+            "/api/auth/recovery",
+            "POST",
+            { email: String(fields.get("email")) },
           );
+          if (!result.accepted)
+            throw new Error("邮件申请结果尚未确认，请先查看邮箱。");
           setSent(true);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "邮件发送失败。");

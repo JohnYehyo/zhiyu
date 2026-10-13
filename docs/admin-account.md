@@ -7,6 +7,8 @@
 
 博客的“发送设置密码邮件”调用Supabase Auth的`resetPasswordForEmail`。发信由Supabase及其配置的邮件服务完成，Vercel只运行网站；没有另建一套邮件系统。邀请用于接受邀请，恢复邮件用于设置或找回密码，都是同一个Auth账号。
 
+登录和申请密码邮件由浏览器提交本站同源API，Vercel服务端通过SSR客户端调用Supabase，保存登录会话或PKCE验证Cookie。浏览器不再直接向Supabase发送登录/申请邮件请求，减少直接连接超时带来的影响。后端转发不保证所有服务故障消失，也不自动重复发信；无HTTP响应与真实429限流会显示不同提示。
+
 ## 只需确认的地址设置
 
 Supabase Authentication → URL Configuration：
@@ -17,6 +19,8 @@ Supabase Authentication → URL Configuration：
 网站支持Supabase默认邮件，无需为了登录更换邮件模板。若之前已采用本仓库的Invite/Recovery模板，也可继续使用，不必改回。
 
 未设置密码或忘记密码时，打开`https://zhiyu-beta.vercel.app/admin/password`，填写已有管理员邮箱，申请新邮件。打开最新邮件→确认→设置密码→后台。默认恢复邮件使用PKCE时，请在申请邮件的同一浏览器和同一网站域名中打开（把链接复制到原浏览器，而非另一个邮件内置浏览器）；切换手机/电脑或Preview/Production会缺少原验证Cookie。
+
+始终从上述固定正式域名开始申请，不要从每次不同的Vercel部署链接申请后再切到正式域名。新接口从请求所在origin生成回跳地址，不接受客户端指定外部redirect；Supabase允许列表仍需匹配该地址。默认邮件链接本身仍先由Supabase验证；若点击链接也出现网络超时，可选用下述TokenHash模板，把验证交给本站服务端。
 
 ## 已过期或已使用的邮件
 

@@ -1,6 +1,23 @@
-import { AuthApiError } from "@supabase/supabase-js";
+import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { expect, it, vi } from "vitest";
 import { requestPasswordRecovery } from "./recovery";
+
+it("distinguishes no HTTP response from provider mail failures and does not retry", async () => {
+  const auth = {
+    resetPasswordForEmail: vi.fn(async () => ({
+      data: null,
+      error: new AuthRetryableFetchError("private-network-detail", 0),
+    })),
+  };
+  await expect(
+    requestPasswordRecovery(
+      auth,
+      "admin@example.test",
+      "https://example.test/auth/confirm",
+    ),
+  ).rejects.toMatchObject({ code: "MAIL_NETWORK_UNAVAILABLE", status: 503 });
+  expect(auth.resetPasswordForEmail).toHaveBeenCalledTimes(1);
+});
 
 it("requests Supabase recovery for the existing email and same-site callback", async () => {
   const auth = {
