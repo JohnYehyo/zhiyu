@@ -3,44 +3,37 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-芝语首版已完成：手帐阅读端、独立文章、手机网页编辑、私有草稿与公开快照、管理员验证和R2直传结构。可构建并在推送后导入Vercel；无凭据时仅明确示例，真实写入失败关闭。
+用户要求真正维护文章及上传图片/视频。沿用既定Next/Vercel/Supabase/R2架构，补齐搜索/状态/分页/删除、上传素材复用，并验证真实后台链路。已有新建/编辑/串行保存/发布/撤回/签名上传，不能重做或称为只有demo。
 
 ### 当前阶段
-done
+interactive_verification
 
 ### 重要文件和近期决定
-- 实际仓库 /Users/johnyehyo/mine/code/web/blob/zhiyu；分支feat/first-version；功能提交9c41602。origin git@github.com:JohnYehyo/zhiyu.git；已按用户本轮授权push到origin/feat/first-version；未PR或部署，未改父目录原型。
-- Supabase Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2账号endpoint https://1b78820da96cc4165361c9f7be4d3099.r2.cloudflarestorage.com，bucket johnyehyo，prefix blob/，public https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev。
-- 已有被忽略.env.local公开配置；密钥仍需用户自行填入，禁止读取/输出/提交真实密钥。环境字段与别名看.env.example。
-- README.md说明命令与写作流程；docs/cloud-setup.md为SQL/Auth/R2/CORS；docs/deployment.md为Vercel导入；docs/verification.md为最终证据与约定。
-- supabase/migrations/202610120001_initial.sql未应用托管项目；真实云验收需用户配置。
+- 仓库zhiyu，分支feat/first-version；HEAD8b45fa6，远端已同步，工作区初始干净。父目录原型不动。
+- 既定Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2 bucket johnyehyo/prefix blob/。不读.env.local/真实密钥；旧3102服务当前不可访问。
+- 维护流程沿用已批准架构/页面，不重新讨论框架。文章删除事务校验owner/revision，移除公开页但保留共享媒体；删除时产品内确认。
+- 新增增量迁移，不修改已可能应用的initial.sql。已上传ready媒体仅按管理员owner列出，作为正文或封面复用；不引入自动R2清理。
 
 ### 已完成
-- 首页、文章、归档/搜索、相册、关于；六色与本地字体素材；手机导航、自然图片比例和手动视频。
-- Supabase getUser+ADMIN_USER_ID、Origin防护、私有草稿/媒体、公开快照事务、revision锁与ready媒体校验。
-- Tiptap手机编辑、图注/封面、串行保存发布、可修正409、真实版本冲突停写/保留/下载、站内和返回离开保护、只展示可靠公开阅读地址。
-- 所有任务独立审查和整分支审查结束；六项发现及新增无前史导航缺陷已修复复审，无未关闭Critical/Important。
+首版完整实现与71tests/typecheck/lint/build/浏览器验证及独立审查已完成，功能基线9c41602。本轮确认文章缺DELETE与列表查询、素材只有创建/完成接口无复用入口。
 
 ### 已运行的命令 + 结果
-- 最终npm test：71/71 PASS，13files，含实际PGlite迁移事务。
-- 最终npm run typecheck/lint/build、git diff --check：PASS；runtime audit0。
-- 生产36组布局PASS，手机hero不遮文案；导航/search/编辑预览/图注/视频/Link与back取消确认通过。
-- 真实Chrome初始history.length=1回归：无目标返回后内容仍在，刷新与Link取消仍保护。
-- HTTP200/200/404，未配置API503、跨站写403；无runtime errors，既有预加载未使用warning。
-- 最终生产预览 http://localhost:3102，exec session36687；停了可npm run start -- --port 3102（源码/环境变更后先build）。
+Git恢复检查干净/HEAD8b45fa6；服务3102不可访问。只读核对post-list/admin API/repository/actual SQL与测试；未重新全库审查鉴权/上传。
 
 ### 已知问题和“请勿重读”列表
-- 不重做已完成架构/原型比较、认证/事务/上传全库审查；精准定位相关模块即可。
-- SaveCoordinator只将REVISION_CONFLICT永久锁写；SLUG_CONFLICT/MEDIA_NOT_READY可修正重试。navigation.ts以实际离开区分返回意图，无前史回归已覆盖。
-- 公开R2草稿媒体可凭URL访问；无转码/字节扫描或pending自动清理，已在UI/docs披露。
-- 开发ESLint/braces既有advisory未降级处理；runtime audit0。
-- 旧临时服务已停止，只有根36687预览；build前协调停服务以免.next资源版本不匹配。
+- getUser+UID/Origin、私有草稿与公开快照、ready媒体验证、导航保护已有，复用已有结论。
+- 公开R2草稿媒体可凭URL访问；无转码/字节扫描/pending清理，已有披露。
+- 不读密钥；用户部署网址 https://zhiyu-beta.vercel.app/；用户已确认Supabase没有draft_posts/published_posts/media三个表；R2 CORS目前只localhost:3000 GET，缺网站origin/PUT/HEAD/请求头。用户未找到密钥设置。已给用户两份SQL及Auth/APIkeys/R2Token/CORS具体步骤，不读密钥。
 
 ### 待验证 / 证据缺口
-Supabase托管角色/REST、SQL真实应用、登录刷新、非管理员真实访问、R2预检/手机File直传/重复PUT拒绝/HEAD、托管公开缓存仍待凭据与部署验收。不能把本地通过称为云已连通。
+本轮新增维护/素材行为测试与构建/手机浏览器；Supabase三个表是否存在、管理员/key状态与R2Token/CORS接入；真实登录/手机File直传与发布验收。
 
 ### 下一步任务
-GitHub推送已完成，当前分支跟踪origin/feat/first-version；用户自行在Vercel导入该分支，可先不填云密钥浏览示例。真实发布再填环境变量、应用SQL、创建唯一管理员UID、配置R2密钥和CORS；不自行创建PR或部署。恢复时校验Git，不重新实现首版。
+本轮SQL/查询/实际SDK catalog已RED→GREEN；维护列表、删除、素材复用已实现；85tests/typecheck/build PASS，lint1unused警告已修正待确认；正式文章列表与素材复用；上传行为核验；最终lint/构建与真实浏览器交互（无cloud keys使用临时独立UI测试服务，禁止生产鉴权旁路）；独立review。用户回复部署配置后联调，不创建生产鉴权旁路、不自行部署/PR。
+
+
+### 本轮执行环境
+Homebrew npm存在但node不在PATH，采用Codex提供bundled Node24.19.0运行测试/构建（仅进程PATH调整，未改系统）。Python系统SSL缺CA链，网站检查改用保持TLS校验的curl，不禁用证书验证。
 
 ## [reader]
 

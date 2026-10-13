@@ -454,3 +454,151 @@
     font-size: 25px;
   }
 }
+
+/* Article maintenance: one compact row per post, utilities at the edge. */
+.admin-list-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0 16px;
+}
+.admin-list-filters label:first-child {
+  flex: 1;
+  min-width: 160px;
+}
+.admin-list-filters label:last-child {
+  min-width: 155px;
+}
+.admin-shell select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  padding: 10px;
+  border-radius: 2px;
+  max-width: 100%;
+}
+.admin-post-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.admin-post-list a {
+  flex: 1;
+  min-width: 0;
+}
+.admin-post-list a > div {
+  min-width: 0;
+}
+.admin-post-list h2 {
+  overflow-wrap: anywhere;
+}
+.admin-delete {
+  flex-shrink: 0;
+}
+.admin-delete:hover {
+  color: #8d3537;
+}
+.admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.admin-pagination > div {
+  display: flex;
+  gap: 6px;
+}
+.admin-media-picker {
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  padding: 16px;
+}
+.admin-media-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-media-picker-heading h3 {
+  font: 500 18px var(--serif);
+}
+.admin-media-kind {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  margin: 12px 0;
+}
+.admin-media-grid {
+  padding: 0;
+  margin: 16px 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-media-grid button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  text-align: left;
+  background: #fffdf8;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.admin-media-grid button:hover {
+  border-color: var(--ink);
+}
+.admin-media-grid strong {
+  width: 100%;
+  font: 500 12px var(--sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-media-grid time {
+  font-size: 11px;
+  color: var(--muted);
+}
+.admin-media-grid .admin-hint {
+  margin: 0;
+  font-size: 11px;
+}
+.admin-media-thumb {
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+}
+.admin-media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 740px) {
+  .admin-media-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-post-list a {
+    display: block;
+    padding: 15px 0;
+  }
+  .admin-post-list a > span {
+    display: inline-block;
+    margin-top: 8px;
+  }
+  .admin-list-filters label:last-child {
+    width: 100%;
+  }
+  .admin-list-filters select {
+    width: 100%;
+  }
+}

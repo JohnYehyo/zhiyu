@@ -37,4 +37,6 @@ export interface MediaRecord {
   size: number;
   status: "pending" | "ready";
   alt?: string;
+  filename?: string;
+  createdAt?: string;
 }

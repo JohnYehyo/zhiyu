@@ -15,11 +15,13 @@ export async function adminRequest<T>(
   url: string,
   method = "GET",
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(url, {
     method,
     credentials: "same-origin",
     cache: "no-store",
+    signal,
     headers:
       body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),

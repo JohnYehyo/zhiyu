@@ -21,8 +21,9 @@ import {
   Download,
   Upload,
   Save,
+  Images,
 } from "lucide-react";
-import type { DraftPost, PostDraft, RichNode } from "@/lib/types";
+import type { DraftPost, PostDraft, RichNode, MediaRecord } from "@/lib/types";
 import { SaveCoordinator } from "@/lib/admin/save-coordinator";
 import { defaultSlug, serializeEditorDocument } from "@/lib/admin/content";
 import {
@@ -38,6 +39,7 @@ import { mediaUrl } from "@/lib/media";
 import { RichContent } from "@/components/rich-content";
 import { EditorImage, EditorVideo } from "./media-node";
 import { protectEditorNavigation } from "@/lib/admin/navigation";
+import { MediaPicker } from "./media-picker";
 
 const emptyDraft = (): PostDraft => ({
   title: "",
@@ -77,6 +79,7 @@ export function PostEditor({
   const [preview, setPreview] = useState(false);
   const [message, setMessage] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
+  const [picker, setPicker] = useState<"body" | "cover" | null>(null);
   const [upload, setUpload] = useState<{
     percent: number;
     busy: boolean;
@@ -97,12 +100,12 @@ export function PostEditor({
   const draft = snapshot.draft;
   const validFields = Boolean(
     draft.title.trim() &&
-      draft.title.length <= 200 &&
-      draft.category.trim() &&
-      draft.category.length <= 60 &&
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(draft.slug) &&
-      draft.slug.length <= 120 &&
-      draft.excerpt.length <= 1000,
+    draft.title.length <= 200 &&
+    draft.category.trim() &&
+    draft.category.length <= 60 &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(draft.slug) &&
+    draft.slug.length <= 120 &&
+    draft.excerpt.length <= 1000,
   );
 
   useEffect(
@@ -269,7 +272,25 @@ export function PostEditor({
     const result = await completeUpload(pending.media.id);
     if (result.media.status !== "ready")
       throw new Error("媒体尚未确认就绪，请重试确认。");
-    if (cover) updateField("coverKey", result.media.storageKey);
+    if ((kind === "image") !== result.media.mimeType.startsWith("image/"))
+      throw new Error("媒体类型不匹配，请重新选择。");
+    insertMedia(result.media, cover);
+    setUpload(null);
+    setMessage(
+      cover ? "封面已上传。" : "媒体已插入，点击媒体可填写说明和图注。",
+    );
+  }
+
+  function insertMedia(media: MediaRecord, cover: boolean) {
+    const url = mediaUrl(media.storageKey);
+    if (media.status !== "ready") throw new Error("媒体尚未完成上传。");
+    if (!url)
+      throw new Error(
+        "媒体公共地址未配置或不可用，请检查 NEXT_PUBLIC_MEDIA_BASE_URL。",
+      );
+    const kind = media.mimeType.startsWith("image/") ? "image" : "video";
+    if (cover && kind !== "image") throw new Error("封面只能选择图片。");
+    if (cover) updateField("coverKey", media.storageKey);
     else
       editor
         ?.chain()
@@ -277,18 +298,14 @@ export function PostEditor({
         .insertContent({
           type: kind,
           attrs: {
-            mediaId: result.media.id,
-            storageKey: result.media.storageKey,
-            src: result.url,
+            mediaId: media.id,
+            storageKey: media.storageKey,
+            src: url,
             alt: "",
             caption: "",
           },
         })
         .run();
-    setUpload(null);
-    setMessage(
-      cover ? "封面已上传。" : "媒体已插入，点击媒体可填写说明和图注。",
-    );
   }
 
   async function handleFile(file: File) {
@@ -542,6 +559,14 @@ export function PostEditor({
                     <ImagePlus size={15} />
                     上传封面
                   </button>
+                  <button
+                    className="admin-button subtle"
+                    disabled={demo || Boolean(upload?.busy)}
+                    onClick={() => setPicker("cover")}
+                  >
+                    <Images size={15} />
+                    从素材选择
+                  </button>
                   {draft.coverKey && (
                     <button
                       className="admin-button subtle"
@@ -660,7 +685,39 @@ export function PostEditor({
             >
               <Video size={17} />
             </button>
+            <button
+              title={demo ? "本地示例不连接素材库" : "选择已上传素材"}
+              aria-label="选择已上传素材"
+              disabled={demo || Boolean(upload?.busy) || !editor}
+              onClick={() =>
+                setPicker((value) => (value === "body" ? null : "body"))
+              }
+            >
+              <Images size={17} />
+            </button>
           </div>
+          {picker && (
+            <MediaPicker
+              key={picker}
+              imagesOnly={picker === "cover"}
+              onClose={() => setPicker(null)}
+              onSelect={(media) => {
+                try {
+                  insertMedia(media, picker === "cover");
+                  setPicker(null);
+                  setMessage(
+                    picker === "cover"
+                      ? "已选择封面。"
+                      : "素材已插入，点击媒体可填写说明和图注。",
+                  );
+                } catch (cause) {
+                  setMessage(
+                    cause instanceof Error ? cause.message : "素材无法使用。",
+                  );
+                }
+              }}
+            />
+          )}
           <EditorContent editor={editor} className="admin-writing-area" />
           {!editor && <p role="status">正在准备编辑器…</p>}
           {active?.media && (

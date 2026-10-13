@@ -1,0 +1,14 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://zhiyu-beta.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3100",
+      "http://localhost:3102"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "If-None-Match"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

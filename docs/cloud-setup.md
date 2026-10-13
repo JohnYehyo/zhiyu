@@ -4,7 +4,7 @@
 
 ## Supabase
 
-1. 在 Supabase SQL Editor 应用 `supabase/migrations/202610120001_initial.sql`（一次性初始迁移，已有同名表请先人工审核；不要反复执行）。迁移已在本地 PGlite PostgreSQL 引擎验证，尚未应用真实项目。
+1. 在 Supabase SQL Editor 新建 query。没有博客三个表时，只执行 `supabase/setup/query-bootstrap.sql` 一次；初始表已建但维护字段未添加时，只执行 `supabase/setup/query-maintenance.sql`。两份均为单个 `DO` 语句，适配报 `cannot insert multiple commands into a prepared statement` 的执行入口；原迁移文件保留给迁移工具。具体判断与步骤见 [connect-live.md](connect-live.md)。本地验证不能替代真实项目执行确认。
 2. 在 Authentication 中关闭公开注册，人工创建唯一管理员账号，复制 User UID 为 `ADMIN_USER_ID`。后台使用邮箱密码登录，没有注册入口。Supabase API 仍有权限规则；关闭注册不能代替 API 鉴权。
 3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。旧 Supabase/Vercel 集成的 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 和 `SUPABASE_SERVICE_ROLE_KEY` 也受支持；同类新变量 trim 后非空时优先，否则回退旧变量。服务角色永不使用 `NEXT_PUBLIC_*`。
 4. 在本地填 `.env.local`，在 Vercel 项目中分别配置环境变量。变量修改后重新构建部署。不要提交 `.env.local`，不要把 Secret key 放到 `NEXT_PUBLIC_*`。
@@ -15,13 +15,13 @@
 
 ## R2
 
-1. 配置 `.env.example` 的账号、桶、Object Read & Write 凭据及公共媒体 URL。当前桶为 `johnyehyo`，前缀固定 `blob`，R2 endpoint 由账号生成：`https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`，桶作为路径，不拼进账号主机。公共 URL 为 `https://pub-5ae729e1d9de4ed79a75a0afd0101d49.r2.dev`；生产可另配 HTTPS 根地址的媒体域名。
+1. 配置 `.env.example` 的账号、桶、Object Read & Write 凭据及公共媒体 URL。当前桶为 `blog`，前缀固定 `blob`，R2 endpoint 由账号生成：`https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`，桶作为路径，不拼进账号主机。公共 URL 为 `https://pub-d631369681144c86b273231bd9377fe0.r2.dev`；生产可另配 HTTPS 根地址的媒体域名。
 2. 对桶配置 CORS。AllowedOrigins 仅填实际网站地址与必要的本地测试地址；不要 `*`。AllowedMethods 设置 PUT、GET、HEAD；AllowedHeaders 至少 `Content-Type`、`If-None-Match`；ExposeHeaders 可设置 ETag。MaxAgeSeconds 可为 3600。用真实 Vercel域名替换示例值。
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://your-site.vercel.app", "http://localhost:3100"],
+    "AllowedOrigins": ["https://zhiyu-beta.vercel.app", "http://localhost:3100"],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["Content-Type", "If-None-Match"],
     "ExposeHeaders": ["ETag"],
@@ -36,8 +36,12 @@
 
 R2 公共桶 URL 中的文件可以凭 URL 直接访问，**草稿里的家庭媒体不会因稿件未发布而自动变成私有对象**。这是既定公共媒体桶架构的限制，私密媒体需要以后另做私有桶/签名读取方案。失败或放弃上传的 pending 记录和孤立对象尚无自动清理，勿配置会删除已发布对象的简单 TTL。
 
+当前网站具体接入步骤见 [connect-live.md](connect-live.md)，可复制的准确 CORS 见 [r2-cors.json](r2-cors.json)。
+
 ## API 与错误
 
+- GET `/api/admin/posts` 支持 page/pageSize/status/q（按标题字面搜索），返回 posts 与 pagination；GET `/api/admin/media` 支持 page/pageSize/kind，仅列出当前管理员的 ready 素材及原始文件名。
+- DELETE `/api/admin/posts/[id]` 接收 `{revision}`，校验 owner/revision 后事务删除稿件与公开页，保留媒体，返回 `{deletedId}`。
 - GET/POST `/api/admin/posts`，GET/PATCH `/api/admin/posts/[id]`；POST 创建接收 PostDraft，PATCH 接收 `{revision,draft}`，列表返回 `{posts}`，其他稿件操作返回 `{post}`。
 - POST `/api/admin/posts/[id]/publish` 与 `/unpublish` 接收 `{revision}`。
 - POST `/api/admin/media` 接收 `{filename,contentType,size}`，返回 `{media,uploadUrl,uploadHeaders}`；POST `/api/admin/media/[id]/complete` 无需 body，返回 `{media,url}`。

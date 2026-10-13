@@ -46,6 +46,7 @@ export async function createUpload(
     mimeType: upload.contentType,
     size: upload.size,
     status: "pending",
+    filename: upload.filename,
   });
   return {
     media,
