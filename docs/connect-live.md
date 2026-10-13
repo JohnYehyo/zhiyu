@@ -69,3 +69,9 @@ Cloudflare R2 Object Storage → Overview → Account Details → API Tokens →
 当前代码与本地测试不能代替真实云验收。公共桶中的草稿媒体可凭链接访问；视频播放取决于编码，本站不转码。
 
 参考：[Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)、[Cloudflare R2 tokens](https://developers.cloudflare.com/r2/api/tokens/)、[R2 CORS](https://developers.cloudflare.com/r2/buckets/cors/)。
+
+## 登录页仍显示未就绪时
+
+新版登录页逐项显示当前部署的地址/公共key/服务端key/ADMIN_USER_ID状态，以及Production或Preview和提交号，不显示任何配置值。此检查没有访问数据库/R2，不能据此判断SQL失败。
+
+`.env.local` 仅供本机开发，已被Git忽略，不会同步到GitHub或Vercel。集成变量不包含ADMIN_USER_ID，需在Vercel项目Settings → Environment Variables单独填管理员用户的UID并选择Production（需要预览登录时也勾选Preview）。变量改完必须重新部署；若正式域名仍在旧版本，需要更新Production部署。先核对页上的提交号，再处理明确未设置或格式不正确的字段；不重复执行初始化SQL。

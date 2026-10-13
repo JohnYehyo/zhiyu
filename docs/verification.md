@@ -33,3 +33,9 @@
 ## Supabase 集成变量命名（2026-10-13）
 
 代码、模板和部署文档统一优先使用用户 Vercel 集成的 zhiyu 变量名。reader/browser/server/proxy/service全部统一URL选择，公开字段保持静态NEXT_PUBLIC引用以供Next编译；私有字段仅在server-only服务客户端使用。5新增行为测试RED→GREEN，最终19files94tests、typecheck/lint/build/diffcheck PASS，独立小范围审查PASS。无前缀旧配置仍作为回退，集成POSTGRES/JWT变量无需复制。没有读取或修改真实密钥、没有声称实际云注入与登录已验收。
+
+## 配置缺项诊断（2026-10-13）
+
+此前登录配置页只有笼统提示。新版SSR逐项显示当前部署的URL/publicKey/serviceKey/ADMIN_USER_ID是否已提供/缺失/格式错误，只渲染状态，不渲染任何配置值；部署环境与合法截断SHA帮助识别旧版本。诊断与写入守卫使用同一判定，授权边界不变。3新增测试RED→GREEN，最终20files97tests/typecheck/lint/build/diffcheck PASS，390px检查与独立小范围review PASS。
+
+只读线上检查仍看到旧环境引用/无zhiyu适配或公开URL内联，不能认定新代码已进入正式域名。本地应用诊断为URL/public/service已提供、ADMIN_USER_ID格式不正确，未读取其真实值。用户认为.env.local会同步Vercel，已解释Git忽略与云Environment Variables分别设置；真实云登录仍待正确UserUID/Production变量及新部署。

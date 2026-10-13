@@ -35,16 +35,32 @@ function validProjectUrl(value: string | undefined): boolean {
 }
 /** Call on the server; expose only its boolean result to UI. */
 export function hasWriteConfig(): boolean {
-  return (
-    hasSupabaseConfig() &&
-    Boolean(
-      (process.env.zhiyu_SUPABASE_SECRET_KEY?.trim() ||
-        process.env.zhiyu_SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-        process.env.SUPABASE_SECRET_KEY?.trim() ||
-        process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) &&
-      /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(
-        process.env.ADMIN_USER_ID ?? "",
-      ),
-    )
+  return Object.values(writeConfigStatus()).every(
+    (status) => status === "configured",
   );
+}
+export type ConfigStatus = "configured" | "missing" | "invalid";
+/** Server-side diagnostics: statuses only, never configuration values. */
+export function writeConfigStatus(): Record<
+  "url" | "publicKey" | "serviceKey" | "adminUserId",
+  ConfigStatus
+> {
+  const url = publicSupabaseUrl();
+  const admin = process.env.ADMIN_USER_ID ?? "";
+  const serviceKey = Boolean(
+    process.env.zhiyu_SUPABASE_SECRET_KEY?.trim() ||
+    process.env.zhiyu_SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
+  );
+  return {
+    url: !url ? "missing" : validProjectUrl(url) ? "configured" : "invalid",
+    publicKey: publicSupabaseKey() ? "configured" : "missing",
+    serviceKey: serviceKey ? "configured" : "missing",
+    adminUserId: !admin.trim()
+      ? "missing"
+      : /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(admin)
+        ? "configured"
+        : "invalid",
+  };
 }

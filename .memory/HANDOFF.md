@@ -3,13 +3,13 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-用户要求完全对齐Vercel Supabase集成注入的zhiyu命名空间。代码/模板/docs优先使用NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY与zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY，旧无前缀变量兼容回退，secret仅server。已有后台与SQL不重做。
+排查用户线上仍显示“真实后台尚未配置”。区分旧Production部署与当前环境缺项，给出逐项无秘密诊断，不修改或读取用户云密钥。
 
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
-- 本轮命名修正已本地提交；SSH22及备用443均Connection closed，HTTPS无已登录凭据，gh auth status未登录。推送未完成，Vercel尚未获得本轮变量适配。不要声称已上线；恢复直接检查Git ahead状态并重试git push，勿重做代码或索取聊天密钥。
+- 用户要求再次推送后已成功：origin/feat/first-version与本地HEAD均2d70936d86609d9afa2e9e502b59014a4b264528，git ls-remote已核对。先前SSH中断已恢复；无需重做变量适配。Vercel部署是否Ready/Production仍需单独确认，不能只凭push称已上线。
 - 最新配置对齐用户原样提供的Vercel变量：NEXT_PUBLIC_zhiyu_SUPABASE_URL/PUBLISHABLE_KEY/ANON_KEY，zhiyu_SUPABASE_SECRET_KEY/SERVICE_ROLE_KEY；带zhiyu非空优先，publishable/secret优先同namespace旧类key，再回退无namespace旧配置。所有reader/browser/server/proxy/service统一publicSupabaseUrl。秘密只server服务使用，不输出值。
 - 实际仓库zhiyu，feat/first-version；本轮569a21c维护、9b1ec28单query SQL与blog桶整合、a07ebe7搜索修复。本轮功能代码06a6033已按用户此前授权推送origin/feat/first-version并核对远端SHA；不创建PR或点击部署。
 - Project URL https://mgbahqnxoraqmljibsrc.supabase.co；R2新独立桶blog（旧johnyehyo为其他应用，勿动），对象前缀blob/；public https://pub-d631369681144c86b273231bd9377fe0.r2.dev。不读.env.local/任何密钥。
@@ -25,6 +25,10 @@ done
 - 独立review /root/review_maintenance检查8b45fa6..9b1ec28：owner/revision、private素材、SQL/权限通过，唯一literal*缺陷修复a07ebe7后复审Yes，无Critical/Important遗留。
 
 ### 已运行的命令 + 结果
+- 真实本地production3102的新诊断页返回URL/public/service均已提供，但ADMIN_USER_ID格式不正确（只读应用status，未读取实际值）；用户已获知需AuthenticationUserUUID+Vercel变量单独设置。390px截图无横溢出，浏览器无runtime errors，预加载warning已有。
+- 最终20files97tests/typecheck/lint/build/diffcheck PASS。
+- 只读curl正式/admin/login HTTP200仍setup；10个publicJS脚本检测：旧NEXT_PUBLIC_SUPABASE_URL引用存在，无zhiyu适配标记/无公开项目URL或key内联（仅输出booleans，不输出值）。这页只是hasWriteConfig环境检查，不查询DB/R2。需要确认新版Production/变量环境和ADMIN_USER_ID。
+- 本轮逐项诊断3新增测试先RED→GREEN8：缺UID/格式错误与同一守卫一致、SSR显示环境/提交号但不渲染任何凭据值。
 - 本轮变量命名更新：新增5项先RED确认只namespace配置不识别及service取错旧值，GREEN；全套19files94tests/typecheck/lint/build/diffcheck PASS；独立小范围review PASS。不读取.env.local/真实云值，自动注入/真实登录链路仍待部署验收。
 - 最新npm test：18files89tests PASS；typecheck/lint/build、diffcheck PASS。SQL实际PGlite事务与prepared-query，SDK实际查询编码、上传File/headers均覆盖。
 - 新增SQL4、query3、SDK2、页码/UUID/搜索边界等均RED→GREEN；原权限/发布/上传安全测试保留。
@@ -37,14 +41,15 @@ done
 - getUser+UID/Origin/private快照/ready校验和导航已确认，不重新全库搜索鉴权或原型。
 - 公开R2草稿媒体凭URL可访问；无转码/byte扫描/orphan清理，已有披露。
 - 系统npm找不到node，测试使用Codex bundled Node24.19.0，进程PATH临时调整，无系统安装。Python系统SSL CA问题用curl保持校验，不禁用TLS。
-- QA脚本仅/tmp/zhiyu-maint-20261013，勿提交fixture/auth替身或以它证明真实cloud。截图同目录。本轮构建前已停止旧3102/session28967；新版构建已通过，启动预览可npm run start -- --port 3102；原预览（可能随环境切换停止，先检查）；3104离线QA/session83167已停止，browser maintenance已关闭。旧服务进程不可假定存活。
+- QA脚本仅/tmp/zhiyu-maint-20261013，勿提交fixture/auth替身或以它证明真实cloud。截图同目录。本轮诊断QA3102/session54396已停止，最终构建完成；可npm run start -- --port 3102启动预览；3104离线QA/session83167已停止，browser maintenance已关闭。旧服务进程不可假定存活。
 
 ### 待验证 / 证据缺口
 用户2026-10-13部署截图确认3f34608/06a6033均Ready但为Preview，蓝色Production仍fbe145a；不能因Gitpush成功就称正式域名已更新。已说明最新部署菜单Promote to Production或配置生产分支；未替用户点击发布。
 用户已确认初始没有三个业务表、CORS仅localhostGET，另一聊天已给修复SQL/R2说明。真实Supabase执行、管理员邮箱UID/keys、Vercel变量Redeploy、blog CORS、手机R2跨域FilePUT/HEAD、登录刷新、托管公开缓存仍未确认。
 
 ### 下一步任务
-命名空间配置完成：新增5项行为测试RED→GREEN，最终94tests/typecheck/lint/build/diffcheck PASS，/root/review_env_names只读review PASS。首先恢复GitHub网络后git push同一已授权分支，本轮仍本地ahead1。用户按docs/connect-live.md配置并反馈结果后真实联调；入口/admin/login，不使用/admin/demo发布。不要重写后台。发现新的共享目录修改先校验Git/本文件并保留用户.idea/密钥。
+无secret诊断页已完成：97tests/typecheck/lint/build/diffcheck、390px浏览器检查与/root/review_config_diagnostics独立review PASS；已授权同一GitHub分支交付。用户回答“ADMIN_USER_ID不就在.env.local?”，已确认gitignore该文件并解释本地变量不会进入Vercel，需云面板另填UID/选择Production/Redeploy；没有读取本机UID或密钥。新版页面显示真实缺项与commit/env。接下来用户从Authentication复制正确UUID到本地与VercelProduction变量，重新部署并确认正式站版本；没有获得值，不自行改云账户或读取.env.local。
+命名空间配置完成：新增5项行为测试RED→GREEN，最终94tests/typecheck/lint/build/diffcheck PASS，/root/review_env_names只读review PASS。GitHub已成功推送本轮2d70936；下一步确认Vercel新部署及Production分支/推广状态。用户按docs/connect-live.md配置并反馈结果后真实联调；入口/admin/login，不使用/admin/demo发布。不要重写后台。发现新的共享目录修改先校验Git/本文件并保留用户.idea/密钥。
 
 ## [Codex-cloud-setup]
 

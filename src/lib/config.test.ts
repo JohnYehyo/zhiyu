@@ -71,3 +71,43 @@ it("prefers namespaced URL and never authorizes writes using only a public key o
   expect(hasSupabaseConfig()).toBe(true);
   expect(hasWriteConfig()).toBe(false);
 });
+it("configuration diagnostics identify the exact missing administrator without exposing values", () => {
+  vi.stubEnv("NEXT_PUBLIC_zhiyu_SUPABASE_URL", "https://zhiyu.supabase.co");
+  vi.stubEnv(
+    "NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY",
+    "do-not-display-public-value",
+  );
+  vi.stubEnv("zhiyu_SUPABASE_SECRET_KEY", "do-not-display-secret-value");
+  expect(config.writeConfigStatus()).toEqual({
+    url: "configured",
+    publicKey: "configured",
+    serviceKey: "configured",
+    adminUserId: "missing",
+  });
+  expect(JSON.stringify(config.writeConfigStatus())).not.toMatch(
+    /do-not-display/,
+  );
+  expect(hasWriteConfig()).toBe(false);
+});
+it("diagnostics distinguish a malformed URL or UID from absent configuration, using the same write guard", () => {
+  vi.stubEnv(
+    "NEXT_PUBLIC_zhiyu_SUPABASE_URL",
+    "https://example.supabase.co/dashboard",
+  );
+  vi.stubEnv("NEXT_PUBLIC_zhiyu_SUPABASE_ANON_KEY", "public");
+  vi.stubEnv("zhiyu_SUPABASE_SERVICE_ROLE_KEY", "private");
+  vi.stubEnv("ADMIN_USER_ID", "email@example.com");
+  expect(config.writeConfigStatus()).toMatchObject({
+    url: "invalid",
+    adminUserId: "invalid",
+  });
+  vi.stubEnv("NEXT_PUBLIC_zhiyu_SUPABASE_URL", "https://zhiyu.supabase.co");
+  vi.stubEnv("ADMIN_USER_ID", "11111111-1111-4111-8111-111111111111");
+  expect(Object.values(config.writeConfigStatus())).toEqual([
+    "configured",
+    "configured",
+    "configured",
+    "configured",
+  ]);
+  expect(hasWriteConfig()).toBe(true);
+});

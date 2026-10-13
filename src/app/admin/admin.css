@@ -109,6 +109,43 @@
 .admin-setup .admin-hint {
   margin-top: 14px;
 }
+.admin-config-checks {
+  margin: 22px 0;
+}
+.admin-config-checks > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+.admin-config-checks > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.admin-config-checks dt {
+  font-size: 13px;
+}
+.admin-config-checks code {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.admin-config-checks dd {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.admin-config-checks dd[data-state="missing"],
+.admin-config-checks dd[data-state="invalid"] {
+  color: #8d3537;
+}
+.admin-config-checks .admin-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
 .admin-note {
   font-size: 12px;
   color: var(--muted);
