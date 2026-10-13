@@ -2,7 +2,11 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Article, PostDraft } from "./types";
 import { demoPosts } from "./demo-posts";
-import { hasSupabaseConfig, publicSupabaseKey } from "./config";
+import {
+  hasSupabaseConfig,
+  publicSupabaseKey,
+  publicSupabaseUrl,
+} from "./config";
 import { normalizeDocument } from "./content/document";
 interface PublishedRow {
   id: string;
@@ -11,17 +15,13 @@ interface PublishedRow {
   published_at: string;
 }
 function reader() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publicSupabaseKey(),
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
+  return createClient(publicSupabaseUrl(), publicSupabaseKey(), {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
-  );
+  });
 }
 function article(row: PublishedRow): Article {
   return {

@@ -44,6 +44,6 @@ npm run start -- --port 3100
 - [Vercel 导入与发布检查](docs/deployment.md)
 - [首版规格](docs/superpowers/specs/2026-10-12-first-version.md)
 
-配置支持 Supabase 新 Publishable/Secret key 与旧 anon/service_role key：同类非空新变量优先，旧变量作为回退。服务角色密钥仅在服务端使用。配置提示只显示就绪状态，不返回配置值。
+Supabase 配置名称与 Vercel 的 `zhiyu` 集成一致：`NEXT_PUBLIC_zhiyu_SUPABASE_URL`、`NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY`、`zhiyu_SUPABASE_SECRET_KEY`；同集成的 anon/service_role 也兼容。先读取带 `zhiyu` 的变量，同类非空 publishable/secret 优先，最后兼容无前缀旧变量。服务角色密钥仅在服务端使用。配置提示只显示就绪状态，不返回配置值。
 
 主要目录：`src/app` 为阅读页、管理页与 API；`src/components/admin` 为编辑器和登录界面；`src/lib/admin` 为保存队列、内容序列化和上传客户端；`src/lib/server` 为服务校验与持久化；`supabase/migrations` 为权限和发布事务。

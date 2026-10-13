@@ -6,7 +6,7 @@
 
 1. 在 Supabase SQL Editor 新建 query。没有博客三个表时，只执行 `supabase/setup/query-bootstrap.sql` 一次；初始表已建但维护字段未添加时，只执行 `supabase/setup/query-maintenance.sql`。两份均为单个 `DO` 语句，适配报 `cannot insert multiple commands into a prepared statement` 的执行入口；原迁移文件保留给迁移工具。具体判断与步骤见 [connect-live.md](connect-live.md)。本地验证不能替代真实项目执行确认。
 2. 在 Authentication 中关闭公开注册，人工创建唯一管理员账号，复制 User UID 为 `ADMIN_USER_ID`。后台使用邮箱密码登录，没有注册入口。Supabase API 仍有权限规则；关闭注册不能代替 API 鉴权。
-3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。旧 Supabase/Vercel 集成的 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 和 `SUPABASE_SERVICE_ROLE_KEY` 也受支持；同类新变量 trim 后非空时优先，否则回退旧变量。服务角色永不使用 `NEXT_PUBLIC_*`。
+3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。直接读取 Vercel `zhiyu` 集成的 `NEXT_PUBLIC_zhiyu_SUPABASE_URL`、`NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY` 与 `zhiyu_SUPABASE_SECRET_KEY`，无需改名；同集成的 `NEXT_PUBLIC_zhiyu_SUPABASE_ANON_KEY` 和 `zhiyu_SUPABASE_SERVICE_ROLE_KEY` 也受支持，publishable/secret 非空时优先。原无前缀配置仅作为兼容回退。服务角色永不使用 `NEXT_PUBLIC_*`。
 4. 在本地填 `.env.local`，在 Vercel 项目中分别配置环境变量。变量修改后重新构建部署。不要提交 `.env.local`，不要把 Secret key 放到 `NEXT_PUBLIC_*`。
 
 `draft_posts` 与 `media` 开启 RLS，并撤销 anon/authenticated 的所有表访问；只允许服务端 service_role。`published_posts` 只对公共角色开放 SELECT。写 API 每次调用 Supabase `getUser()` 校验真实用户，并严格比较管理员 UID。代理只刷新 `/admin/*` 和 `/api/admin/*` 的 Cookie；不会给公共阅读缓存加入会话。
@@ -21,7 +21,10 @@
 ```json
 [
   {
-    "AllowedOrigins": ["https://zhiyu-beta.vercel.app", "http://localhost:3100"],
+    "AllowedOrigins": [
+      "https://zhiyu-beta.vercel.app",
+      "http://localhost:3100"
+    ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["Content-Type", "If-None-Match"],
     "ExposeHeaders": ["ETag"],

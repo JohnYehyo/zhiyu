@@ -19,15 +19,15 @@
 
 | 用途              | 变量                                                                                                | 可在客户端使用 |
 | ----------------- | --------------------------------------------------------------------------------------------------- | -------------- |
-| Supabase 项目地址 | `NEXT_PUBLIC_SUPABASE_URL`                                                                          | 是             |
-| Supabase 公共 key | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`；旧集成可用 `NEXT_PUBLIC_SUPABASE_ANON_KEY`                  | 是             |
-| Supabase 服务 key | `SUPABASE_SECRET_KEY`；旧集成可用 `SUPABASE_SERVICE_ROLE_KEY`                                       | 否             |
+| Supabase 项目地址 | `NEXT_PUBLIC_zhiyu_SUPABASE_URL`                                                                    | 是             |
+| Supabase 公共 key | `NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY`；旧集成可用 `NEXT_PUBLIC_zhiyu_SUPABASE_ANON_KEY`      | 是             |
+| Supabase 服务 key | `zhiyu_SUPABASE_SECRET_KEY`；旧集成可用 `zhiyu_SUPABASE_SERVICE_ROLE_KEY`                           | 否             |
 | 唯一管理员 UID    | `ADMIN_USER_ID`                                                                                     | 否             |
 | R2 存储           | `R2_ACCOUNT_ID`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME`、`R2_KEY_PREFIX=blob` | 否             |
 | 媒体公共根地址    | `NEXT_PUBLIC_MEDIA_BASE_URL`                                                                        | 是             |
 | 网站地址          | `NEXT_PUBLIC_SITE_URL`                                                                              | 是             |
 
-同类新变量 trim 后非空时优先，空白时回退旧变量。Vercel 的 Supabase 集成如果注入旧变量名，可以直接使用；必须另设 `ADMIN_USER_ID`，且服务角色绝不能使用 `NEXT_PUBLIC_` 前缀。真实编辑视图验证 Supabase `getUser()` 与管理员 UID；公开 key 不是管理员凭据。
+代码优先读取上述 `zhiyu` 集成变量，无需另建无前缀副本；同类非空 publishable/secret 优先，空白时回退该集成的 anon/service_role。无前缀旧配置仍兼容。`zhiyu_POSTGRES_*` 和 `zhiyu_SUPABASE_JWT_SECRET` 不参与本项目 HTTP API 连接。必须另设 `ADMIN_USER_ID`，且服务角色绝不能使用 `NEXT_PUBLIC_` 前缀。真实编辑视图验证 Supabase `getUser()` 与管理员 UID；公开 key 不是管理员凭据。
 
 按 [服务接入说明](cloud-setup.md) 应用 SQL、关闭公开注册、创建管理员、配置 R2。将固定 Vercel 网站地址加入桶 CORS；本地按实际端口配置 origin。Preview 的临时域名也需显式加入，不能因测试方便使用 `*`。可用稳定的自定义域名减少 CORS 维护。
 

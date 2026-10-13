@@ -32,21 +32,23 @@ Supabase Authentication → Users 创建邮箱/密码账号并确认邮箱；复
 
 项目 Settings → Environment Variables，配置到实际使用的 Production 环境，随后 Redeploy。
 
-| 变量 | 值或来源 |
-| --- | --- |
-| NEXT_PUBLIC_SITE_URL | https://zhiyu-beta.vercel.app |
-| NEXT_PUBLIC_SUPABASE_URL | https://mgbahqnxoraqmljibsrc.supabase.co |
-| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | Supabase Project Settings → API Keys 中的 Publishable key |
-| SUPABASE_SECRET_KEY | 同页的 Secret key，仅服务端 |
-| ADMIN_USER_ID | 上一步用户 UID |
-| R2_ACCOUNT_ID | 1b78820da96cc4165361c9f7be4d3099 |
-| R2_BUCKET_NAME | blog |
-| R2_KEY_PREFIX | blob |
-| NEXT_PUBLIC_MEDIA_BASE_URL | https://pub-d631369681144c86b273231bd9377fe0.r2.dev |
-| R2_ACCESS_KEY_ID | R2 token 创建后给出的 Access Key ID |
-| R2_SECRET_ACCESS_KEY | 同次创建给出的 Secret Access Key，仅服务端 |
+| 变量                                       | 值或来源                                                  |
+| ------------------------------------------ | --------------------------------------------------------- |
+| NEXT_PUBLIC_SITE_URL                       | https://zhiyu-beta.vercel.app                             |
+| NEXT_PUBLIC_zhiyu_SUPABASE_URL             | https://mgbahqnxoraqmljibsrc.supabase.co                  |
+| NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY | Supabase Project Settings → API Keys 中的 Publishable key |
+| zhiyu_SUPABASE_SECRET_KEY                  | 同页的 Secret key，仅服务端                               |
+| ADMIN_USER_ID                              | 上一步用户 UID                                            |
+| R2_ACCOUNT_ID                              | 1b78820da96cc4165361c9f7be4d3099                          |
+| R2_BUCKET_NAME                             | blog                                                      |
+| R2_KEY_PREFIX                              | blob                                                      |
+| NEXT_PUBLIC_MEDIA_BASE_URL                 | https://pub-d631369681144c86b273231bd9377fe0.r2.dev       |
+| R2_ACCESS_KEY_ID                           | R2 token 创建后给出的 Access Key ID                       |
+| R2_SECRET_ACCESS_KEY                       | 同次创建给出的 Secret Access Key，仅服务端                |
 
-如果 Supabase 集成已经提供 NEXT_PUBLIC_SUPABASE_ANON_KEY 和 SUPABASE_SERVICE_ROLE_KEY，可继续使用旧名，无需重复填写同类新变量。服务端密钥不能使用 NEXT_PUBLIC_ 前缀。
+直接使用你在 Vercel 的 Supabase 集成中看到的 `zhiyu` 变量名；集成已注入时无需手工复制成另一套名称。公共 key 优先 `NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY`，回退同集成的 `NEXT_PUBLIC_zhiyu_SUPABASE_ANON_KEY`；服务端优先 `zhiyu_SUPABASE_SECRET_KEY`，回退 `zhiyu_SUPABASE_SERVICE_ROLE_KEY`。已有无 `zhiyu` 前缀的旧配置仍兼容回退。
+
+`zhiyu_POSTGRES_*` 与 `zhiyu_SUPABASE_JWT_SECRET` 是集成提供的其他连接参数，本项目通过 Supabase HTTP API 读写，不需要手工对应这些字段。保留集成提供的变量即可；仍需单独配置 `ADMIN_USER_ID` 和 R2 变量。
 
 ## 4. R2
 

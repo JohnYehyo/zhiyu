@@ -29,3 +29,7 @@
 - PostgREST字面搜索改imatch并转义完整regex字符；实际SDK编码与PostgreSQL匹配边界均覆盖。
 - 仓库真实组件在独立临时测试接口中通过浏览器搜索/分页/删除确认/素材→正文及封面/实际PNG与MP4 File上传/自动保存/故障不插入检查；手机和平板无横溢出。该接口不进入仓库，不提供生产鉴权旁路，不等同cloud成功。
 - 正式生产API无配置503、跨站删除403；线上/admin/login仍未配置，真实cloud验收待用户完成[接入配置](connect-live.md)。最新独立R2桶是blog，前缀blob/，旧桶勿动。
+
+## Supabase 集成变量命名（2026-10-13）
+
+代码、模板和部署文档统一优先使用用户 Vercel 集成的 zhiyu 变量名。reader/browser/server/proxy/service全部统一URL选择，公开字段保持静态NEXT_PUBLIC引用以供Next编译；私有字段仅在server-only服务客户端使用。5新增行为测试RED→GREEN，最终19files94tests、typecheck/lint/build/diffcheck PASS，独立小范围审查PASS。无前缀旧配置仍作为回退，集成POSTGRES/JWT变量无需复制。没有读取或修改真实密钥、没有声称实际云注入与登录已验收。
