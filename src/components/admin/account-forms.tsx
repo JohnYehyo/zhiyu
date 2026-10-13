@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { adminRequest } from "@/lib/admin/api";
+import { adminRequest, ApiError } from "@/lib/admin/api";
 import {
   parsePassword,
   readEmailCallback,
@@ -77,7 +77,23 @@ export function EmailConfirmationForm({
           router.replace("/admin/password");
           router.refresh();
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "邮件确认失败。");
+          const diagnostic =
+            cause instanceof ApiError &&
+            [
+              "VERIFIER_MISSING",
+              "VERIFIER_MISMATCH",
+              "LINK_EXPIRED",
+              "LINK_INVALID",
+              "AUTH_NETWORK_UNAVAILABLE",
+              "AUTH_UNAVAILABLE",
+              "AUTH_RATE_LIMIT",
+            ].includes(cause.code ?? "")
+              ? `（${cause.code}）`
+              : "";
+          setError(
+            (cause instanceof Error ? cause.message : "邮件确认失败。") +
+              diagnostic,
+          );
           setBusy(false);
         }
       }}

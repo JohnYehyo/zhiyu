@@ -1,9 +1,16 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
+import { AuthRetryableFetchError } from "@supabase/supabase-js";
 vi.mock("server-only", () => ({}));
 const state = vi.hoisted(() => ({
   user: null as { id: string } | null,
   userError: false,
   expired: false,
+  failure: null as {
+    name?: string;
+    status?: number;
+    code?: string;
+    message: string;
+  } | null,
   verify: vi.fn(),
   exchange: vi.fn(),
   session: vi.fn(),
@@ -16,7 +23,9 @@ vi.mock("../supabase/server", () => ({
       exchangeCodeForSession: async (code: string) => {
         state.exchange(code);
         return {
-          error: state.expired ? { message: "private-code-error" } : null,
+          error:
+            state.failure ??
+            (state.expired ? { message: "private-code-error" } : null),
         };
       },
       setSession: async (input: unknown) => {
@@ -52,6 +61,7 @@ const owner = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => {
   state.user = { id: owner };
   state.userError = state.expired = false;
+  state.failure = null;
   state.verify.mockClear();
   state.exchange.mockClear();
   state.session.mockClear();
@@ -71,6 +81,46 @@ function request(path: string, body: unknown, origin = "http://localhost") {
   });
 }
 const token = { tokenHash: "synthetic-invitation-hash", type: "invite" };
+
+it("distinguishes missing verifier, mismatched flow, expired code and network failures without leaking provider details", async () => {
+  for (const [failure, status, code] of [
+    [
+      {
+        name: "AuthPKCECodeVerifierMissingError",
+        status: 400,
+        message: "private-detail",
+      },
+      409,
+      "VERIFIER_MISSING",
+    ],
+    [
+      { code: "bad_code_verifier", status: 400, message: "private-detail" },
+      409,
+      "VERIFIER_MISMATCH",
+    ],
+    [
+      { code: "flow_state_expired", status: 400, message: "private-detail" },
+      401,
+      "LINK_EXPIRED",
+    ],
+    [{ status: 0, message: "private-detail" }, 503, "AUTH_NETWORK_UNAVAILABLE"],
+    [{ status: 503, message: "private-detail" }, 503, "AUTH_UNAVAILABLE"],
+    [
+      new AuthRetryableFetchError("private-detail", 503),
+      503,
+      "AUTH_UNAVAILABLE",
+    ],
+  ] as const) {
+    state.failure = failure;
+    const response = await confirm(
+      request("/api/auth/confirm", { code: "synthetic-pkce-code" }),
+    );
+    expect(response.status).toBe(status);
+    const data = await response.json();
+    expect(data.code).toBe(code);
+    expect(JSON.stringify(data)).not.toMatch(/private-detail|synthetic-pkce/);
+  }
+});
 
 it("default email callbacks establish server cookies then check the administrator, without echoing credentials", async () => {
   const code = { code: "synthetic-pkce-code" };

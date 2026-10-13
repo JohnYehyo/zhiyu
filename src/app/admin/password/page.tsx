@@ -5,6 +5,9 @@ import {
 } from "@/components/admin/account-forms";
 import { hasWriteConfig } from "@/lib/config";
 import { getAdminSession } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { recoverySiteRedirect } from "@/lib/auth/site";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -13,6 +16,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 export default async function PasswordPage() {
+  const target = recoverySiteRedirect((await headers()).get("host") ?? "");
+  if (target) redirect(target);
   if (!hasWriteConfig()) return <AdminSetup />;
   const session = await getAdminSession();
   return (

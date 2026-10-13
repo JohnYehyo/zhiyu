@@ -4,6 +4,7 @@ import { parseConfirmation } from "@/lib/auth/account";
 import { readJson } from "@/lib/server/http";
 import { assertOrigin, verifyAdminIdentity } from "@/lib/server/security";
 import { ServiceError, unavailable } from "@/lib/server/errors";
+import { confirmationError } from "@/lib/auth/confirmation-error";
 
 export const runtime = "nodejs";
 const headers = {
@@ -29,14 +30,7 @@ export async function POST(request: Request) {
               access_token: input.accessToken,
               refresh_token: input.refreshToken,
             });
-    if (result.error)
-      throw new ServiceError(
-        401,
-        "LINK_INVALID",
-        "code" in input
-          ? "邮件验证未完成。请在申请邮件的同一浏览器中打开最新邮件；必要时重新申请。"
-          : "邮件链接无效、已使用或已过期，请申请一封新邮件。",
-      );
+    if (result.error) throw confirmationError(result.error);
     const { data, error } = await client.auth.getUser();
     try {
       verifyAdminIdentity(error ? null : data.user, process.env.ADMIN_USER_ID);

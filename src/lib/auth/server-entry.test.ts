@@ -94,6 +94,23 @@ it("recovery uses only the same-site callback and never accepts a caller redirec
   expect(state.recover).not.toHaveBeenCalled();
 });
 
+it("a noncanonical Vercel recovery request is rejected before generating another verifier or mail", async () => {
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://zhiyu-beta.vercel.app");
+  const response = await recovery(
+    new Request("https://zhiyu-synthetic-user.vercel.app/api/auth/recovery", {
+      method: "POST",
+      headers: {
+        Origin: "https://zhiyu-synthetic-user.vercel.app",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: "admin@example.test" }),
+    }),
+  );
+  expect(response.status).toBe(409);
+  expect((await response.json()).code).toBe("USE_CANONICAL_SITE");
+  expect(state.recover).not.toHaveBeenCalled();
+});
+
 it("foreign origins and malformed credentials never reach the provider", async () => {
   expect(
     (

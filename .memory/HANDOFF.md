@@ -3,12 +3,17 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-修复已确认的recover浏览器直连Supabase net::ERR_TIMED_OUT。登录与恢复邮件改走本站API、保留SSR会话/PKCE Cookie与严格管理员权限，区分网络与限流反馈。本轮代码/验证完成；真实Vercel邮件和用户登录仍需本人验收。
+用户同浏览器确认邮件仍LINK_INVALID，后续重点击邮件otp_expired。本轮已完成准确错误诊断与域名错位防护，真实Next HTTP Cookie独立复现PASS；原线上第一次交换失败根因仍未取得细分证据，不能称线上已修好。准备推送后由用户最新Production单封邮件验收，既有relay/R2验证保留。
 
 ### 当前阶段
 done
 
 ### 重要文件和近期决定
+- confirmation-error.ts按SDKname/status/code安全分类：VERIFIER_MISSING/MISMATCH、LINK_EXPIRED、network、429、upstream5xx；原始provider描述/token不回显。EmailConfirmationForm只给已知安全错误编号附文案，用户可截图不用F12。SDK AuthRetryableFetchError有真实5xx时应服务故障不是network，review发现后以实际SDKclass回归修正。
+- site.ts在非固定*.vercel.app申请页先redirect已有NEXT_PUBLIC_SITE_URL有效HTTPS根域（默认既有zhiyu-beta），本地/customhost不强跳；recovery API也在创建verifier/发信之前拒绝非固定vercelhost409USE_CANONICAL_SITE。避免同浏览器不同域名cookie错位；这是防护，不是已证用户原故障原因，不新增必须env。
+- 新邮件默认验证在Supabase首次点击消费邮件token，回站交换失败再点邮件会expired，不能以第二次报错倒推初次根因。原旧泛化LINK_INVALID掩盖具体原因；不让用户为补旧日志重复发信/点击。
+- /tmp/zhiyu-auth-http-20261013独立最小Next webpack app复制必要生产handlers/SSR代码，合成env及仅test.supabase.co假HTTP/实际PKCE SHA challenge验证，实际HTTP SetCookie往返。没有真实凭据/邮件/用户token；不修改生产鉴权替身，fixture仅/tmp。
+- 用户询问server relay是否仍用本地网络：说明线上请求分两段，用户电脑→Vercel仍走本地网，但Vercel→Supabase由云服务器发起；localhost的Next后端也在电脑，仍使用本地网，不获得该网络路径变化。代理仅替换已超时的浏览器直连Supa一段，不能保证用户→Vercel或云上游不超时；不因此更改代码/部署区或增加配置。
 - 仓库zhiyu，feat/first-version；9c5514f此前R2文档已推送。本轮按持续GitHub授权提交Auth relay，不建PR、不代改云控制台、不代输入密码或发邮件。.idea为用户文件，不读/删/提交；父目录原型不改。
 - 新增POST /api/auth/login、/api/auth/recovery，复用getServerSupabase SSR Cookie客户端；handleAuth先Origin、hasWriteConfig，严格受限JSON。login signInWithPassword后fresh getUser核exact ADMIN_USER_ID，失败/外人signOut local，固定/admin；不接受用户ID或外部redirect。recovery只接email，从request origin生成/auth/confirm并保留PKCE verifier Cookie；无注册、无自动反复发信。
 - LoginForm与RecoveryRequestForm不再直接调用浏览器Supabase，改同源adminRequest。登录/申请由Vercel→Supabase，降低用户浏览器直连网络影响，不保证上游完全不超时。recovery status0显示MAIL_NETWORK_UNAVAILABLE（发送结果未确认，先看邮箱）；真实429仍MAIL_RATE_LIMIT，其他provider详情不回显。
@@ -24,6 +29,9 @@ done
 - 既有确认invite/recovery code/session/hash流程与密码设置保留：GET展示，POST验证/交换，再freshgetUser exactUID；两通道error优先，fragment移除且缓存防StrictMode误读。素材/上传/文章功能保持。
 
 ### 已运行的命令 + 结果
+- 本轮27files124tests、typecheck、最终lint无warning、production build/diffcheck PASS。错误分类和canonicalAPI/站点helper先RED→GREEN；实际SDK RetryableFetchError503误分类由review发现，补RED回归修正GREEN。独立review_account_flow最终无遗留。
+- 真实Next HTTP+SSR+SDK/合成Auth外部HTTP：申请200返回verifierCookie，正常同源Cookiejar确认200返回sessionCookie；不带Cookie409VERIFIER_MISSING；二次申请覆盖旧challenge409VERIFIER_MISMATCH。结果/tmp/zhiyu-auth-http-20261013/results.json只布尔/状态，不包含Cookie/token。fixture server97255/2801/55199均停止。
+- 实际产品production3102以不同vercel Host只读请求/admin/password返回307到https://zhiyu-beta.vercel.app/admin/password，localhost仍200。起初curl走系统代理返回308干扰，--noproxy '*'直连local验证通过；不据此改生产网络。产品server34195/24033停止，最终构建完成。无真实POST发信或账号确认。
 - 新relay tests先RED缺路由/status0错误分类→GREEN；最终26files121tests、typecheck、lint（无warning）、production build PASS。Cookie3tests最后复验PASS；临时实际mail/login未执行。
 - 实际SSR+SDK、仅mock外部HTTP和Next Cookie store：登录Cookie落盘、错UID Cookie清除、recovery PKCE verifier Cookie→confirm code exchange通过。安全测试有跨origin/空体/额外redirect拒绝、密码不回显、真实provider限流与网络分类，无自动mail重试。
 - 独立review_account_flow只读检查无Critical/Important/Minor遗留；实际SMTP/部署Cookie/Vercel网络不在本地证明范围。
@@ -37,10 +45,10 @@ done
 - 临时cloud探针已从src移除，仅/tmp/zhiyu-storage-check-20261013，不提交/不把替身称正式登录成功。Node用Codex bundled进程PATH，curl保持TLS验证；不改系统。
 
 ### 待验证 / 证据缺口
-用户需让新Auth relay部署到Production，用固定正式域名原浏览器申请一次新邮件，确认Cookie/设置密码/实际登录；Vercel→Supabase网络与SMTP未真实调用验证。Production R2变量未读取，用户随后正式编辑器上传→保存→刷新→发布验收。不要代发邮件、读取密码或重建账号。
+原线上确认为何失败仍未确定，旧返回LINK_INVALID无法反推；用户说同浏览器，但两次域名/实际verifierCookie是否存在及provider详细code未证。本地完整HTTP Cookie正常不等于部署Cookie被浏览器接收；云端最终session/设密码/登录/上传发布待用户验收。不要把诊断修复和canonical防护称线上根因已解决。
 
 ### 下一步任务
-推送并核对最新GitHub SHA；用户更新Production后从正式/admin/password操作。后续失败查本站/api/auth/recovery的status/code；若email点击verify本身超时再选TokenHash模板，不盲目重复发送。登录后验正式文章/图片视频链路，保留既有独立R2成功结果。
+按持续授权提交并推送本轮代码，核对远端SHA。用户最新Production后从固定/admin/password只申请一次最新邮件（有quota时），回跳后及时一次确认；若失败直接截图新安全错误编号即可定位，不重复点旧邮件。保留UID/账号/SQL/SMTP，不新增多用户角色或再重做已通过独立R2验证。
 
 ## [Codex-cloud-setup]
 
