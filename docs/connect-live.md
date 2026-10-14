@@ -2,6 +2,10 @@
 
 目标网站：https://zhiyu-beta.vercel.app 。正式入口为 `/admin/login` 与 `/admin`；`/admin/demo` 始终只是本地试写。
 
+请始终从固定正式域名进入后台。Vercel 单次部署的 `zhiyu-xxxx-johnyehyos-projects.vercel.app` 是不同 Origin，不在 R2 CORS 白名单中；签名 API 成功不代表浏览器 PUT 已上传。新版真实后台页面会自动切到固定正式域名并保留文章路径和查询参数，预览中的 `/admin/demo` 仍可试写。旧部署地址上的旧代码不会随新版本改变；不要收藏旧独立部署的后台地址。
+
+若控制台明确显示预检被 CORS 拒绝，文件还没有执行 PUT，不能靠“重试确认”恢复：从固定正式后台打开相应稿件，重新选择文件上传。使用已有文章路径时可把网址中的独立部署域名换成 `zhiyu-beta.vercel.app`；先保存尚未保存的正文再切换站点。
+
 ## 1. 数据库
 
 不需要“导入”入口，在 Supabase 项目的 **SQL Editor → New query** 粘贴 SQL 并 Run。使用 postgres 管理角色。

@@ -3,10 +3,11 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
+当前跟进：用户在zhiyu-pfpeazfmj独立部署域名上传JPEG，签名API成功，R2预检拒绝该Origin；修复新后台入口自动回固定正式域并保留文章路径/query、API旧页签名请求明确拒绝，实测部署路径后交付。不要改密钥或把R2 CORS设*。
 本轮用户五项请求已完成：真实图片/封面/视频上传配置，分类可选可输入新名称，原型插画封面，易用手账色块/整篇模板/双照片排版，照片默认拍立得。代码已提交推送并部署Production，真实管理员上传、视频播放、保存刷新与分类复用通过。
 
 ### 当前阶段
-done
+verification
 
 ### 重要文件和近期决定
 - 功能源码commit176bef6，feat/first-version已推送；Production BUXhRA78NVhsJpjsS5DuXijFQP65/zhiyu-pfpeazfmj-johnyehyos-projects.vercel.app Ready，正式zhiyu-beta域已指向；没改GitProductionBranch(master)或ADMIN/Auth。后续Git推送仍可能Preview，切勿把文档Preview当生产代码变更。
@@ -25,6 +26,8 @@ done
 - 保留一篇“功能验收草稿（未发布）”：https://zhiyu-beta.vercel.app/admin/posts/8611d30d-543d-463c-99ef-06f4c54c7c5b ，slugfeature-check-20261014，category成长记录，picnicbuiltincover、163byte64×48合成PNG/date2026.10.14+caption、可改模板粉色note/落款、双插画、公开花朵MP4。没有发布或删除用户内容。
 
 ### 已运行的命令 + 结果
+- 新鲜真实无签名OPTIONS：固定zhiyu-beta域204+AllowOrigin/PUT/type/ifNoneMatch；独立pfpeazfmj域403，无AllowOrigin。Cloudflare官方CORS文档亦确认精确Origin匹配；不是JPEG大小/密钥/ReferrerPolicy问题。未使用或重印用户签名URL/token，旧签名不重用。
+- 回归先RED：proxy GET/HEAD uniqueOrigin期望307实际200；已验证管理员旧originmediaAPI期望409实际503。已实现src/lib/auth/site.ts通用后台目标helper、src/proxy.ts仅GET/HEAD真实admin路径（demo例外）在Cookie刷新之前307、mediaPOST在鉴权之后签名之前409USE_CANONICAL_SITE，不重定向POST请求体/会话。
 - 最终33files190tests PASS；typecheck PASS；lint PASS；production build PASS；git diffcheck PASS。新PGlite升级/owner/revision/权限事务通过，真实Tiptap默认attrs与空段落schema、重复照片替换目标回归RED→GREEN。
 - CUA本地实际编辑器：note/photos追加保留旧文，空白整篇journal模板、6插画cover、mint配色与落款、日期/图注入预览；实际导出JSON通过服务端validateDraft。390手机与768平板/桌面无横向溢出，pair手机单列，mobileinspector各305px。截图/tmp/zhiyu-journal-{desktop,mobile,preview,editor-mobile}.png。
 - 真正Production图片：有效163byte64×48PNG上传→HEAD→ready→插入，实际naturalWidth64；替换保留caption/date；封面上传返回“封面已上传”，actualimgloaded64。
@@ -34,6 +37,7 @@ done
 - 真实数据库保存状态“草稿已保存”，路径从new转为8611d30d...；reload从Supabase恢复，preview保留。线上截图/tmp/zhiyu-live-journal-preview.png，部署证据/tmp/zhiyu-journal-production-ready.png，详见docs/storage-validation.md，写作操作docs/editor-guide.md。
 
 ### 已知问题和“请勿重读”列表
+- 用户询问正式部署后的两条Preview：已核对git diff176bef6..8503690，仅.memory/HANDOFF.md与docs/storage-validation.md；9075f17/8503690为验收文档与交接提交，没有产品源码差异。它们不会替换现有正式域名，不需再发布。这次解释仅更新本地HANDOFF，不为记录问答再次推送触发Preview。
 - Auth/邮件/ADMIN、R2链路、分类/JSON/SQL契约与新UI已充分调查与验证；未修改时不重做全库搜索或发测试邮件。
 - 部署源码176bef6，后续仅文档/HANDOFF提交不代表生产功能落后。不重复SQL升级或初始化，不改变master分支设置。
 - 当前真实验收稿与测试媒体保留，未公开/删除。旧共享johnyehyo桶勿动。公共草稿媒体知道URL可访问；视频不转码，暂无孤儿清理。这些既有架构限制无需每次重复警告。
@@ -42,6 +46,7 @@ done
 - 本轮不公开发布验收稿；真实公开发布/缓存及个人手机拍摄编码的长期体验未执行。SQL实际升级成功与PGlite发布兼容已验证，不把未执行真人发布称已验收。
 
 ### 下一步任务
+CORS修复已GREEN：34files198tests、lint、productionbuild PASS；并发typecheck曾因build清理.next/types而失败，build完成后重跑PASS，不修改生成目录。独立review_upload_origin无重要问题。真实Next3102模拟Host GET307保留文章路径/query且private-no-store，demoGET200，跨OriginPOST403/noLocation，未转发正文。准备提交一次含代码与完整交接，部署同项目Production并验证新独立后台307到正式域。旧immutable部署URL不会被源码修改，最终给用户固定正式编辑页链接，不能称旧独立Origin已被R2放行。无新CORS权限/凭据操作，原有Production部署授权在同博客功能修正范围内。
 本轮完成，功能源码与最终验收文档/交接均已按授权提交推送；后续文档提交仅触发Preview，Production功能仍为176bef6。用户可打开保留的未发布验收稿直接修改、测试自身照片。新问题按具体证据调查，不重复设置/登录/建表。Chrome真实草稿tab1738020200已markDeliverable；Supabase本轮query新tab仍在。临时本地生产3102 session94175已停止，IAB本轮QA无需保留；勿带.idea或真实密钥。
 
 ## [Codex-cloud-setup]

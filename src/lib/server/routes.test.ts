@@ -110,3 +110,19 @@ it("verified anonymous/nonadmin identities are 401/403 and auth error cannot aut
   identity.error = { message: "invalid token" };
   expect((await list(request)).status).toBe(401);
 });
+
+it("stale deployment upload requests explain the fixed site before signing or creating pending media", async () => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "synthetic-public");
+  vi.stubEnv("SUPABASE_SECRET_KEY", "synthetic-secret");
+  vi.stubEnv("ADMIN_USER_ID", "11111111-1111-4111-8111-111111111111");
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://zhiyu-beta.vercel.app");
+  identity.user = { id: "11111111-1111-4111-8111-111111111111" };
+  const origin = "https://zhiyu-pfpeazfmj-johnyehyos-projects.vercel.app";
+  const response = await upload(new Request(`${origin}/api/admin/media`, {
+    method: "POST", headers: { origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: "test.jpg", contentType: "image/jpeg", size: 3667422 }),
+  }));
+  expect(response.status).toBe(409);
+  expect(await response.json()).toMatchObject({ code: "USE_CANONICAL_SITE", error: expect.stringContaining("https://zhiyu-beta.vercel.app/admin") });
+});
