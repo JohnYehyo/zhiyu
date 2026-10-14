@@ -42,7 +42,7 @@ done
 - 本轮不公开发布验收稿；真实公开发布/缓存及个人手机拍摄编码的长期体验未执行。SQL实际升级成功与PGlite发布兼容已验证，不把未执行真人发布称已验收。
 
 ### 下一步任务
-本轮完成，用户可打开保留的未发布验收稿直接修改、测试自身照片。新问题按具体证据调查，不重复设置/登录/建表。Chrome真实草稿tab1738020200已markDeliverable；Supabase本轮query新tab仍在。IAB临时本地QA可关闭；本地生产3102 session94175是否保留按预览需要，结束时可停。最后更新文档/HANDOFF提交推送，勿带.idea或真实密钥。
+本轮完成，功能源码与最终验收文档/交接均已按授权提交推送；后续文档提交仅触发Preview，Production功能仍为176bef6。用户可打开保留的未发布验收稿直接修改、测试自身照片。新问题按具体证据调查，不重复设置/登录/建表。Chrome真实草稿tab1738020200已markDeliverable；Supabase本轮query新tab仍在。临时本地生产3102 session94175已停止，IAB本轮QA无需保留；勿带.idea或真实密钥。
 
 ## [Codex-cloud-setup]
 
