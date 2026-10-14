@@ -3,51 +3,43 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-当前跟进：用户在zhiyu-pfpeazfmj独立部署域名上传JPEG，签名API成功，R2预检拒绝该Origin；修复新后台入口自动回固定正式域并保留文章路径/query、API旧页签名请求明确拒绝，实测部署路径后交付。不要改密钥或把R2 CORS设*。
-本轮用户五项请求已完成：真实图片/封面/视频上传配置，分类可选可输入新名称，原型插画封面，易用手账色块/整篇模板/双照片排版，照片默认拍立得。代码已提交推送并部署Production，真实管理员上传、视频播放、保存刷新与分类复用通过。
+用户明确要求独立上传/单独管理相册（不从日记汇总），并“继续”。已完成本地代码与测试/交互/审查，现用户明确批准在既有Supabase执行相册单DO SQL新增私有表及仅明确公开照片的快照读取权限，再部署VercelProduction。成功标准：云SQL成功、正式站相册管理可用、真实synthetic图片添加保存刷新/公开状态验证；不自动公开个人照片。
 
 ### 当前阶段
-verification
+implementation
 
 ### 重要文件和近期决定
-- 功能源码commit176bef6，feat/first-version已推送；Production BUXhRA78NVhsJpjsS5DuXijFQP65/zhiyu-pfpeazfmj-johnyehyos-projects.vercel.app Ready，正式zhiyu-beta域已指向；没改GitProductionBranch(master)或ADMIN/Auth。后续Git推送仍可能Preview，切勿把文档Preview当生产代码变更。
-- 用户明确授权仅读取本地R2六项现有配置（含两凭据）保存到Vercel zhiyu Production，执行Supabase手账兼容SQL及部署新版。全部完成；两项凭据Secret、四项Config，全为Production，不扩大到Preview。读取副本只在CUA内存，已置空，未打印/写临时密钥文件/Git/Reveal。
-- R2blog桶/blobprefix/publichttps://pub-d631369681144c86b273231bd9377fe0.r2.dev。失败根因是Vercel没有任何R2变量；新鲜UI筛选NoResults证据/tmp/zhiyu-vercel-r2-missing.png，配置成功/tmp/zhiyu-vercel-r2-configured.png。
-- Supabase指定mgbahqnxoraqmljibsrc SQL Editor单DO query-journal.sql执行Success.NoRowsReturned，queryf940c06f-9e19-4fc9-8dfd-ff9e2c80752d。更新snapshot_node/publish_post，无删表/文章，旧迁移不改、不重复bootstrap。截图/tmp/zhiyu-journal-sql-upgraded.png。
-- post-editor支持CategoryField、6插画cover、一键日记/色块/双照片；点击色块改六色与落款，点击照片改图注/日期/并排，上传或素材替换。模板追加不覆盖正文。read/editor统一白边胶带拍立得，手机双照片单列。
-- 新分类随文章保存持久化，GETcategories仅取当前owner的draft分类，不新增taxonomy表。新名称已有分类列表自动复用；删掉所有使用它的文章会失去该名称，不声称独立分类管理。
-- journal-assets精确6个本地路径无需mediaId；任意其他本地路径/URL禁止。云图仍blobkey+UUID+owner/ready校验。序列化只对获准内置图丢弃Tiptap默认空mediaId，假非空ID不绕过。
-- 照片替换onclick同步捕获实时选区+不可变完整doc；非image或任何文档变化都会拒绝旧目标，不回退插到别的选区；已确认上传文件留素材库。保持原图注/date/layout。
-- .idea用户目录勿读删提交；父目录原型勿改。Auth登录已用户确认成功，不再重新调查邮件/UID。真实凭据一般仍不得读取；本轮具体许可仅已完成R2传送，不扩展其他密钥/权限。
+- repozhiyu/feat/first-version当前HEADfdd30c2，Production4yGfNKfMS2hvssk2HEsFZq7NV8jU旧版入口修复已Ready。GitProductionBranch仍master，推送自动Preview；新相册要明确Production重建。
+- 用户本轮批准相册SQL/新表公开快照权限/Production部署，无新凭据操作，不读取.env。Supabaseprojectmgbahqnxoraqmljibsrc；R2blog/blob/publichttps://pub-d631369681144c86b273231bd9377fe0.r2.dev现Production配置已完整。ADMIN/Auth不改、旧johnyehyo桶勿动。
+- spec/plan docs/superpowers/{specs,plans}/2026-10-14-album-*.md，流程已确认：上传或reuse ready图片→相册private→图注/说明/日期→显式公开；公开/收起同时保存当前表单，移出仅删相册链接/快照保留R2/日记。
+- rootalbum-types/publicreader/publicAPI/gallery；album_backend私有repo/validators/adminAPI/two-tableRPCSQL；album_admin管理组件/workflow/tests/page与admin入口。均完成勿重做。
+- 新SQL supabase/setup/query-album.sql与migrations/202610140002_album.sql完全一致，单DO需已有media且相册table不存在；重复ALBUM_ALREADY_INITIALIZED拒绝，不删数据。privatealbum_photos+published_album_photos，RPCowner/readyimage/revision/duplicate/rowlock，serviceonlywrite，anon仅快照SELECT。
+- 公共API固定选择id/storage_key/caption/alt/taken_on/published_at，不返回额外owner/mediaID/filename。既有R2 URL路径仍包含owner/object身份，接受既有架构，不新增opaqueproxy。sort_date按拍摄日期或原加入UTC日期排序，blanklabel日期未填写。
+- Gallery按钮大图nativeDialog，左右/Escape关闭/focusreturn，手机平板2列桌面3列；分页按page*pageSize<total结束（不能用去重数量），重排duplicate提示刷新。
+- 前轮CORS已修复fdd30c2：非固定Vercel真实/admin GET/HEAD保留path/query307到Beta，demo/api/POST不跳。mediaPOST已鉴权后wrongOrigin409，R2固定BetaOPTIONS204独立域403。旧immutable地址不能更新；验收始终Beta域。
+- .idea用户目录/父原型勿读删提交；真实凭据不要读或输出；不创建PR，不改云主分支/ADMIN/CORS。
 
 ### 已完成
-- 新功能实现、三项独立任务整合、独立review_journal最终无Important、功能代码176bef6推送、六项云配置、增量SQL、Production部署。
-- 正式管理员既有ChromeCookie进入/admin及新稿件，未读密码/token。合成图片与公开MDN花朵视频真实上传，封面上传、照片替换、视频完整播放、正文预览、真实保存并刷新恢复，新分类复用。
-- 保留一篇“功能验收草稿（未发布）”：https://zhiyu-beta.vercel.app/admin/posts/8611d30d-543d-463c-99ef-06f4c54c7c5b ，slugfeature-check-20261014，category成长记录，picnicbuiltincover、163byte64×48合成PNG/date2026.10.14+caption、可改模板粉色note/落款、双插画、公开花朵MP4。没有发布或删除用户内容。
+- 实现完整独立相册、公有/私有分离、上传ready/add不同retry身份保留、revision冲突、重用图片不重复、metadata/publictoggle、手机编辑与safeviewer。
+- 独立review_album最终无Important，发现分页dedup问题已SSR回归RED→GREEN。第一build新PG测试3处unknown类型FAIL，已query泛型修正，复建PASS。
 
 ### 已运行的命令 + 结果
-- 新鲜真实无签名OPTIONS：固定zhiyu-beta域204+AllowOrigin/PUT/type/ifNoneMatch；独立pfpeazfmj域403，无AllowOrigin。Cloudflare官方CORS文档亦确认精确Origin匹配；不是JPEG大小/密钥/ReferrerPolicy问题。未使用或重印用户签名URL/token，旧签名不重用。
-- 回归先RED：proxy GET/HEAD uniqueOrigin期望307实际200；已验证管理员旧originmediaAPI期望409实际503。已实现src/lib/auth/site.ts通用后台目标helper、src/proxy.ts仅GET/HEAD真实admin路径（demo例外）在Cookie刷新之前307、mediaPOST在鉴权之后签名之前409USE_CANONICAL_SITE，不重定向POST请求体/会话。
-- 最终33files190tests PASS；typecheck PASS；lint PASS；production build PASS；git diffcheck PASS。新PGlite升级/owner/revision/权限事务通过，真实Tiptap默认attrs与空段落schema、重复照片替换目标回归RED→GREEN。
-- CUA本地实际编辑器：note/photos追加保留旧文，空白整篇journal模板、6插画cover、mint配色与落款、日期/图注入预览；实际导出JSON通过服务端validateDraft。390手机与768平板/桌面无横向溢出，pair手机单列，mobileinspector各305px。截图/tmp/zhiyu-journal-{desktop,mobile,preview,editor-mobile}.png。
-- 真正Production图片：有效163byte64×48PNG上传→HEAD→ready→插入，实际naturalWidth64；替换保留caption/date；封面上传返回“封面已上传”，actualimgloaded64。
-- 真正ProductionMP4 1128375bytes上传→ready→video，duration5.055/readyState4，真实播放pausedfalse后endedtrue/time5.055，无error。最终真实刷新后preview4images均loaded，quote pink+落款、pair1组、无overflow，分类下拉含成长记录。
-- 首次68byte测试PNG仅测上传且CRC无效，随后使用标准库生成有效163byte64×48并替换；两者均为合成测试，未选个人媒体，旧测试素材未删除。其他留存上传为封面同163byte及MP4。R2没自动清理，别盲目删孤儿。
-- BrowserChrome扩展初期requestheaderpolicy加载失败，原生CUA AX完成云表单；后来BrowserAPI可用。filechooser.setFiles缺AllowFileURLs，未扩大扩展权限，取消debug拦截后用系统Open精确选/tmp/zhiyu-upload-check.png及/tmp/zhiyu-storage-smoke.mp4完成上传，不再要求用户配置扩展。
-- 真实数据库保存状态“草稿已保存”，路径从new转为8611d30d...；reload从Supabase恢复，preview保留。线上截图/tmp/zhiyu-live-journal-preview.png，部署证据/tmp/zhiyu-journal-production-ready.png，详见docs/storage-validation.md，写作操作docs/editor-guide.md。
+- 最终41files246tests PASS；lint PASS；production build PASS；构建后typecheck PASS；git diffcheck待提交前复跑。
+- backend35tests真实PGlite+实际SDKHTTP→SQL端到端，owner/readypendingvideo/duplicate/revision/publicanon权限/长度date/remove保留media；不是云多连接并发证据。
+- root6tests公开投影/错误分类/参数/图库SSR转义无日记链接/动态页终止；admin13tests workflow上传/确认/add失败retry身份、重复清理、输入ready/type及当前表单revision、SSR入口与已有navigation。
+- tmp独立Nextfixture/tmp/zhiyu-album-qa-20261014，无.env/真实凭据，server3103session60229。publicgallery2→4→6照片loaded，Arrow切换/Escapefocusreturn、锁滚动、390/768无overflow，mobile2列modal354×683于390×844内；desktop/mobile/tablet/viewermobile截图/tmp/zhiyu-album-*.png。
+- admin真实组件+合成APIfixture：select/edit/save保持private；publish同步当前caption/日期；unpub、reuse新增private、不覆盖已有selection，390字段335px无overflow、768无overflow。IAB datefill不触发change，原生Arrow输入触发且真实保存；属于工具输入差异。原生confirm未保存保护交互未取得可复核结果，已有navigation单测通过，不声称实测。
 
 ### 已知问题和“请勿重读”列表
-- 用户询问正式部署后的两条Preview：已核对git diff176bef6..8503690，仅.memory/HANDOFF.md与docs/storage-validation.md；9075f17/8503690为验收文档与交接提交，没有产品源码差异。它们不会替换现有正式域名，不需再发布。这次解释仅更新本地HANDOFF，不为记录问答再次推送触发Preview。
-- Auth/邮件/ADMIN、R2链路、分类/JSON/SQL契约与新UI已充分调查与验证；未修改时不重做全库搜索或发测试邮件。
-- 部署源码176bef6，后续仅文档/HANDOFF提交不代表生产功能落后。不重复SQL升级或初始化，不改变master分支设置。
-- 当前真实验收稿与测试媒体保留，未公开/删除。旧共享johnyehyo桶勿动。公共草稿媒体知道URL可访问；视频不转码，暂无孤儿清理。这些既有架构限制无需每次重复警告。
+- 登录邮件ADMIN与R2链路已真实验收，不重复建号/发送邮件/改配置。旧验收日记8611d30d-543d-463c-99ef-06f4c54c7c5b已保存未公开，勿删除。
+- 相册新代码已查，不重读全库；按agent段和必要文件继续。公开R2草稿知道URL仍可访问、无转码/孤儿清理是既有架构，不因此改权限。
 
 ### 待验证 / 证据缺口
-- 本轮不公开发布验收稿；真实公开发布/缓存及个人手机拍摄编码的长期体验未执行。SQL实际升级成功与PGlite发布兼容已验证，不把未执行真人发布称已验收。
+- 真实Supabase新相册SQL未执行，Production相册未部署；用户刚批准，现在继续。真实后台素材添加/保存刷新/公开/收起与公共快照验收未完成。
+- 本轮不自行发布任何用户个人媒体。仅合成测试图可用于验收，最终未公开；若移出测试记录触发永久删除则不可未经另确认执行。
 
 ### 下一步任务
-CORS修复已GREEN：34files198tests、lint、productionbuild PASS；并发typecheck曾因build清理.next/types而失败，build完成后重跑PASS，不修改生成目录。独立review_upload_origin无重要问题。真实Next3102模拟Host GET307保留文章路径/query且private-no-store，demoGET200，跨OriginPOST403/noLocation，未转发正文。准备提交一次含代码与完整交接，部署同项目Production并验证新独立后台307到正式域。旧immutable部署URL不会被源码修改，最终给用户固定正式编辑页链接，不能称旧独立Origin已被R2放行。无新CORS权限/凭据操作，原有Production部署授权在同博客功能修正范围内。
-本轮完成，功能源码与最终验收文档/交接均已按授权提交推送；后续文档提交仅触发Preview，Production功能仍为176bef6。用户可打开保留的未发布验收稿直接修改、测试自身照片。新问题按具体证据调查，不重复设置/登录/建表。Chrome真实草稿tab1738020200已markDeliverable；Supabase本轮query新tab仍在。临时本地生产3102 session94175已停止，IAB本轮QA无需保留；勿带.idea或真实密钥。
+按已授权执行单DOquery-album.sql到指定Supabase；成功后commit/push一次所有本轮代码+交接docs，Production重建（不用旧cache），验证Readysource/domain。正式/admin/album选明确合成63×48测试媒体或新合成PNG，默认private，编辑保存refresh看持久化；如需短暂公开合成测试再收起可作为授权功能验收，不发布个人照片。最后更新本地HANDOFF不再为文档触发额外Preview。Chrome新bindingID1，IAB3；cua变量albumChrome/albumBrowser/albumQATab/albumAdminQA/albumFs存在。保持新的云截图与UI证据，结束停60229fixture。
 
 ## [Codex-cloud-setup]
 
@@ -212,3 +204,69 @@ done
 
 ### 下一步任务
 父 Agent 接入 PostEditor 和CSS，进行最终全量测试、typecheck/build与必要交互验证。
+
+## [album_admin]
+
+### 当前目标 + 成功指标
+独立相册后台：上传/复用图片→确认ready→新增未公开相册记录；管理图注/内容说明/日期、保存、公开/收起、移出，失败可按原媒体身份恢复。仅实现admin scope，不从日记生成相册，不删除R2对象。
+
+### 当前阶段
+done（本Agent范围；整体真实交互/云端由root集成验证）
+
+### 重要文件和近期决定
+- `src/components/admin/album-manager.tsx` + css；`src/app/admin/album/page.tsx` Guard/Shell；admin首页仅新增相册入口。
+- `src/lib/admin/album-workflow.ts` 独立顺序状态机，签名和PUT后确认失败保留pending；ready后POST失败只重试POST；重复错误清空恢复身份并刷新列表。同步busy锁拒绝双击并发。新记录metadata空值，默认未公开由后端保证。
+- 显式保存；公开/收起PATCH一并捕获当前caption/alt/date/revision，fieldsets在写入期间禁用。现有编辑器永不被后到的新增完成结果覆盖。切换/分页/关闭编辑确认未保存字段；复用protectEditorNavigation保护离页/返回/刷新及未完成上传。
+- 列表GET key+AbortController，不展示过期页。相册移出DELETE只传revision并明确保留素材/日记。冲突保留本地字段、禁止再次写入，提供确认放弃并刷新列表。
+- ≤700px编辑区在网格上方，选择时聚焦并滚到编辑区；网格两列。桌面编辑区290px，普通compact lucide按钮。相册范围CSS隐藏既有MediaPicker中“作为封面”提示，保留相册自有提示，没有改MediaPicker文件。
+
+### 已完成
+全部分配文件及辅助workflow/测试；未改共享types/auth/media APIs/repository/db/public gallery/globalCSS。没有真实env/secret、云操作、Browser、commit/push或子Agent。
+
+### 已运行的命令 + 结果
+- workflow初始6项断言RED→实现后GREEN。涵盖确认失败、PUT不确定、ready后加入失败、重复恢复、快速连续添加隔离、发布字段快照。
+- `npm test -- src/components/admin/album-manager.test.tsx src/lib/admin/album-workflow.test.ts src/lib/admin/upload.test.ts src/lib/admin/navigation.test.ts`：4files13tests PASS。SSR仅证明图片入口/loading无日记占位，不代替浏览器events。
+- 6个自身TS/TSX文件scoped ESLint PASS；`git diff --check` PASS。
+- `npm run typecheck`初轮FAIL，仅并行后端WIP：album-routes.test.ts46 unknown及缺routes/repository；album-sql.test.ts26/94 unknown。自身无类型报错。root最终需再跑，未运行build以免共享.next竞态。
+
+### 已知问题和“请勿重读”列表
+既有上传/API/Pagination/MediaPicker/Navigation/Guard合同已确认且复用，无需重新全库调查。未知PUT只提供HEAD确认；不以新签名/重复PUT伪装重试。改选素材是显式放弃当前恢复状态，存储素材保留。
+
+### 待验证 / 证据缺口
+没有真正Browser或云端效果证明。需要root验证390/768/桌面：upload/素材→未公开、图注保存刷新、未保存字段公开/收起、分页取消、冲突、移出确认保留素材、ready-add失败与确认失败按钮。后端/admin/album exactcontract由另一个Agent实现。
+
+### 下一步任务
+root完成后端和公开页集成，全量tests/lint/build/typecheck顺序核验与真实UI，再最终更新总体HANDOFF。
+
+## [album_backend]
+
+### 当前目标 + 成功指标
+独立相册后端：只能添加本人ready图片，默认私有；元数据/公开切换必须校验owner和revision；快照仅含展示字段；移出不删除媒体。完成本地实现和定向验证，等待root整合。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- `src/lib/server/album-repository.ts`：listAlbumPage(owner,{page,pageSize})、createAlbumPhoto(owner,{mediaId,caption,alt,date})、updateAlbumPhoto(owner,id,{revision,caption,alt,date,published})、removeAlbumPhoto(owner,id,revision)。私有返回完整AlbumPhoto，不返回owner或文件名；RPC错误独立映射ALBUM_MIGRATION_REQUIRED/ALBUM_DUPLICATE/ALBUM_CONFLICT/NOT_FOUND/MEDIA_NOT_READY。
+- `src/lib/server/album-security.ts`：严格payload字段、真实日历YYYY-MM-DD/空日期、图注1000/说明500上限、正安全整数revision；parseAlbumQuery只允许唯一page/pageSize，默认1/20，上限10000/100。
+- `src/app/api/admin/album/{route.ts,[id]/route.ts}`：真实handleAdmin/readJson/validateId；GET分页、POST默认未公开、PATCH保存与快照同步、DELETE版本移出。PATCH/DELETE成功revalidatePath('/album')覆盖收起，POST无需公开缓存失效。
+- `supabase/migrations/202610140002_album.sql` 与 `supabase/setup/query-album.sql` 内容一致、单DO增量；要求已有media，发现任何现有相册表拒绝重建。私有album_photos引用media且owner/media唯一，公开published_album_photos只含id/storage_key/caption/alt/taken_on/sort_date/published_at。sort_date按root补充需求使用日期或原始created_at UTC日；公开读只选六个产品字段。无账号/媒体ID/文件名。
+- create/update/remove三个SECURITY INVOKER函数search_path为空，仅service_role执行；create锁ready本人图片，update锁owner记录及revision并在公开时重新锁ready图片、检查storage_key完全相同；事务快照更新/撤回。FK确保移出只删相册链接与快照，保留源media。
+
+### 已完成
+新增后端7个TS文件与两份SQL；真实PGlite SQL权限/事务/原始创建日期排序、Supabase客户端HTTP格式到SQL的管理接口集成、严格参数校验。
+
+### 已运行的命令 + 结果
+- SQL缺实现首轮13失败RED；最终 `npm test -- src/lib/server/album-routes.test.ts src/lib/server/album-security.test.ts src/lib/server/album-sql.test.ts`：3files35tests PASS。
+- 整合构建发现两测试文件PGlite默认unknown行类型，已仅加query泛型（RPC result、regclass、公开行）；再次3files35tests PASS，`npm run typecheck` PASS。完整build由root重跑。
+- scoped `npx eslint` 全部7个新增TS文件：PASS；`git diff --check`：PASS；迁移/setup `cmp`：PASS。
+- prepared单query从bootstrap升级、拒绝重复建表、拒绝缺media库：PASS；owner/pending/video/key变更/null或旧revision/公开列权限/数据库日历和长度/删除保留media：PASS。
+
+### 已知问题和“请勿重读”列表
+已有auth/R2/文章功能未改。SQL不是可重复初始化脚本，重复执行应ALBUM_ALREADY_INITIALIZED。需要复核时只定位新增相册文件，无需重读旧媒体/日记发布实现。
+
+### 待验证 / 证据缺口
+未执行真实云SQL、上线、浏览器、commit/push/PR；全库测试与build由root整合后顺序执行；当前独立typecheck已PASS。PGlite验证事务内原子性和顺序版本冲突，不能等同多连接真实Postgres并发验收。
+
+### 下一步任务
+root整合并执行全套验证；必要时按用户既有授权应用新的相册单DO升级，切勿重跑bootstrap或旧日记迁移。真实云验证只用合成且未公开测试媒体。
