@@ -7,6 +7,28 @@ import { RichContent } from "@/components/rich-content";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("public content safety", () => {
+  it("keeps bounded journal metadata and discards unsupported image sources", () => {
+    const doc = normalizeDocument({ type: "doc", content: [
+      { type: "blockquote", attrs: { tone: "blue", attribution: "芝语", style: "color:red" }, content: [] },
+      { type: "blockquote", attrs: { tone: "evil", attribution: "x".repeat(201) }, content: [] },
+      { type: "image", attrs: { storageKey: "/assets/flowers.svg", layout: "pair", date: "夏日", caption: "花" } },
+      { type: "image", attrs: { storageKey: "/assets/unapproved.svg" } },
+      { type: "image", attrs: { storageKey: "blob/unverified.png" } },
+    ] });
+    expect(doc.content).toHaveLength(3);
+    expect(doc.content?.[0].attrs).toEqual({ tone: "blue", attribution: "芝语" });
+    expect(doc.content?.[1].attrs).toEqual({ tone: "pink" });
+    expect(doc.content?.[2].attrs).toEqual({ storageKey: "/assets/flowers.svg", layout: "pair", date: "夏日", caption: "花" });
+  });
+  it("requires issued identity for cloud images and drops malformed photo metadata", () => {
+    const storageKey = "blob/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg";
+    const doc = normalizeDocument({ type: "doc", content: [
+      { type: "image", attrs: { storageKey } },
+      { type: "image", attrs: { storageKey, mediaId: "unverified" } },
+      { type: "image", attrs: { storageKey, mediaId: "22222222-2222-4222-8222-222222222222", layout: "grid", date: "x".repeat(41), style: "color:red" } },
+    ] });
+    expect(doc.content).toEqual([{ type: "image", attrs: { storageKey, mediaId: "22222222-2222-4222-8222-222222222222" } }]);
+  });
   it.each(["javascript:alert(1)", "JAVASCRIPT:alert(1)", "java\nscript:alert(1)", "data:text/html,test", "//evil.test", "\\evil.test", "file:///tmp/key"])("rejects unsafe link %s", (url) => {
     expect(safeLink(url)).toBeNull();
   });

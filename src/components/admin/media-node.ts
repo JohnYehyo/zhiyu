@@ -8,12 +8,19 @@ function mediaNode(kind: "image" | "video") {
     atom: true,
     draggable: true,
     addAttributes() {
-      return Object.fromEntries(
+      const attrs = Object.fromEntries(
         ["mediaId", "storageKey", "src", "alt", "caption"].map((name) => [
           name,
           { default: "", rendered: false },
         ]),
       );
+      return kind === "image"
+        ? {
+            ...attrs,
+            layout: { default: "single", rendered: false },
+            date: { default: "", rendered: false },
+          }
+        : attrs;
     },
     // Pasted arbitrary URLs are not ready server-verified media.
     parseHTML() {
@@ -39,9 +46,20 @@ function mediaNode(kind: "image" | "video") {
         {
           class: `editor-media editor-${kind}`,
           "data-media-id": node.attrs.mediaId,
+          ...(kind === "image" ? { "data-layout": node.attrs.layout } : {}),
         },
         media,
-        ["figcaption", {}, node.attrs.caption || "点击媒体，编辑说明与图注"],
+        [
+          "figcaption",
+          {},
+          node.attrs.caption ||
+            (kind === "image"
+              ? "点击照片，编辑图注或替换图片"
+              : "点击视频，编辑说明"),
+          ...(kind === "image" && node.attrs.date
+            ? [["span", { class: "photo-date" }, node.attrs.date]]
+            : []),
+        ],
       ];
     },
   });

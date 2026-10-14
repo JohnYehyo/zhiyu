@@ -738,6 +738,53 @@ select:focus-visible {
   padding: 24px 28px;
   background: var(--pink);
 }
+.prose blockquote[data-tone="blue"],
+.admin-tiptap blockquote[data-tone="blue"] {
+  background: var(--blue);
+}
+.prose blockquote[data-tone="green"],
+.admin-tiptap blockquote[data-tone="green"] {
+  background: var(--grass);
+}
+.prose blockquote[data-tone="yellow"],
+.admin-tiptap blockquote[data-tone="yellow"] {
+  background: var(--yellow);
+}
+.prose blockquote[data-tone="peach"],
+.admin-tiptap blockquote[data-tone="peach"] {
+  background: var(--peach);
+}
+.prose blockquote[data-tone="mint"],
+.admin-tiptap blockquote[data-tone="mint"] {
+  background: var(--mint);
+}
+.note-attribution {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.content-photo-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin: 30px 0 40px;
+  align-items: start;
+}
+.content-photo-pair .content-image {
+  margin: 0;
+  transform: rotate(-1deg);
+}
+.content-photo-pair .content-image:nth-child(2) {
+  transform: rotate(1deg);
+}
+.photo-date {
+  float: right;
+  margin-left: 15px;
+  font-family: var(--serif);
+  font-style: italic;
+  white-space: nowrap;
+}
 .prose blockquote p {
   font-family: var(--serif);
   font-size: 22px;
@@ -764,6 +811,21 @@ select:focus-visible {
   padding: 10px 10px 14px;
   margin: 28px 0 38px;
   box-shadow: 0 2px 6px rgba(53, 76, 67, 0.08);
+  position: relative;
+  transform: rotate(-0.6deg);
+  padding-bottom: 20px;
+}
+.content-image:before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: calc(50% - 36px);
+  width: 72px;
+  height: 20px;
+  background: rgba(164, 206, 196, 0.65);
+  transform: rotate(3deg);
+  z-index: 1;
+  pointer-events: none;
 }
 .content-image img {
   width: 100%;
@@ -1142,6 +1204,13 @@ select:focus-visible {
   }
   .content-image {
     padding: 7px 7px 10px;
+  }
+  .content-photo-pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 25px;
+  }
+  .content-photo-pair .content-image {
+    transform: none;
   }
   .content-video {
     padding: 8px 8px 12px;

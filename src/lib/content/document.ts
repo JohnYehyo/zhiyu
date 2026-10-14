@@ -1,7 +1,10 @@
 import type { RichNode } from "../types";
+import { isJournalAsset, journalQuoteTones } from "../journal-assets";
 
 const nodeTypes = new Set(["doc", "paragraph", "text", "heading", "blockquote", "bulletList", "orderedList", "listItem", "hardBreak", "horizontalRule", "image", "video", "codeBlock"]);
 const markTypes = new Set(["bold", "italic", "underline", "strike", "code", "link"]);
+const issuedImageKey = /^blob\/[\da-f-]{36}\/[\da-f-]{36}\.(jpg|png|webp|gif)$/i;
+const mediaId = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
 export function safeLink(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -45,7 +48,17 @@ export function normalizeDocument(input: unknown): RichNode {
       }
       if (source.type === "heading") node.attrs.level = Number.isInteger(attrs.level) && Number(attrs.level) >= 1 && Number(attrs.level) <= 6 ? attrs.level : 2;
       if (source.type === "orderedList") node.attrs.start = Number.isInteger(attrs.start) && Number(attrs.start) > 0 ? attrs.start : 1;
+      if (source.type === "blockquote") {
+        node.attrs = { tone: journalQuoteTones.some((tone) => tone === attrs.tone) ? attrs.tone : "pink" };
+        if (typeof attrs.attribution === "string" && attrs.attribution.length <= 200) node.attrs.attribution = attrs.attribution;
+      }
+      if (source.type === "image") {
+        if (!isJournalAsset(attrs.storageKey) && !(typeof attrs.storageKey === "string" && issuedImageKey.test(attrs.storageKey) && typeof attrs.mediaId === "string" && mediaId.test(attrs.mediaId))) return null;
+        if (attrs.layout === "single" || attrs.layout === "pair") node.attrs.layout = attrs.layout;
+        if (typeof attrs.date === "string" && attrs.date.length <= 40) node.attrs.date = attrs.date;
+      }
     }
+    if (source.type === "image" && !node.attrs) return null;
     if (Array.isArray(source.content)) node.content = source.content.flatMap((child) => {
       const normalized = normalize(child, depth + 1);
       return normalized ? [normalized] : [];

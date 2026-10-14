@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { safeLink } from "../content/document";
+import { isJournalAsset, journalQuoteTones } from "../journal-assets";
 import type { PostDraft, RichNode } from "../types";
 import { ServiceError } from "./errors";
 const key = z
@@ -8,6 +9,18 @@ const key = z
     /^blob\/[\da-f-]{36}\/[\da-f-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/i,
   );
 const uuid = z.string().uuid();
+const journalKey = z.string().refine(isJournalAsset);
+const mediaAttrs = {
+  alt: z.string().max(500).optional(),
+  caption: z.string().max(1000).optional(),
+  src: z.string().max(2048).refine((v) => Boolean(safeLink(v)) || v.startsWith("blob:")).optional(),
+};
+const imageDetails = { layout: z.enum(["single", "pair"]).optional(), date: z.string().max(40).optional() };
+const imageAttrs = z.union([
+  z.object({ mediaId: uuid, storageKey: key, ...mediaAttrs, ...imageDetails }).strict(),
+  z.object({ storageKey: journalKey, ...mediaAttrs, ...imageDetails }).strict(),
+]);
+const videoAttrs = z.object({ mediaId: uuid, storageKey: key, ...mediaAttrs }).strict();
 const types = new Set([
   "doc",
   "paragraph",
@@ -117,23 +130,13 @@ export function validateDocument(input: unknown): RichNode {
                   start: z.number().int().min(1).max(10000).optional(),
                 })
                 .strict()
-            : ["image", "video"].includes(type)
-              ? z
-                  .object({
-                    mediaId: uuid,
-                    storageKey: key,
-                    alt: z.string().max(500).optional(),
-                    caption: z.string().max(1000).optional(),
-                    src: z
-                      .string()
-                      .max(2048)
-                      .refine(
-                        (v) => Boolean(safeLink(v)) || v.startsWith("blob:"),
-                      )
-                      .optional(),
-                  })
-                  .strict()
-              : z.object({}).strict();
+            : type === "blockquote"
+              ? z.object({ tone: z.enum(journalQuoteTones).default("pink"), attribution: z.string().max(200).optional() }).strict()
+              : type === "image"
+                ? imageAttrs
+                : type === "video"
+                  ? videoAttrs
+                  : z.object({}).strict();
       const result = attrSchema.safeParse(raw.attrs);
       if (!result.success) invalid();
       node.attrs = result.data;
@@ -163,7 +166,7 @@ const draftSchema = z
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     excerpt: z.string().max(1000),
     category: z.string().trim().min(1).max(60),
-    coverKey: z.union([z.literal(""), key]),
+    coverKey: z.union([z.literal(""), key, journalKey]),
     content: z.unknown(),
   })
   .strict();

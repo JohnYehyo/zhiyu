@@ -5,6 +5,8 @@
 ## Supabase
 
 1. 在 Supabase SQL Editor 新建 query。没有博客三个表时，只执行 `supabase/setup/query-bootstrap.sql` 一次；初始表已建但维护字段未添加时，只执行 `supabase/setup/query-maintenance.sql`。两份均为单个 `DO` 语句，适配报 `cannot insert multiple commands into a prepared statement` 的执行入口；原迁移文件保留给迁移工具。具体判断与步骤见 [connect-live.md](connect-live.md)。本地验证不能替代真实项目执行确认。
+完成初始化/维护后，另执行 `supabase/setup/query-journal.sql`，升级内置插画与手账属性的快照/发布兼容。已有数据库只运行此增量升级，不重复初始化。
+
 2. 在 Authentication 中关闭公开注册，人工创建唯一管理员账号，复制 User UID 为 `ADMIN_USER_ID`。后台使用邮箱密码登录，没有注册入口。Supabase API 仍有权限规则；关闭注册不能代替 API 鉴权。
 3. 按 `.env.example` 配置 Project URL、Publishable key、仅服务端 Secret key 与管理员 UID。Project URL 已确认为 `https://mgbahqnxoraqmljibsrc.supabase.co`；URL 存在但 key 为空仍视为未配置。直接读取 Vercel `zhiyu` 集成的 `NEXT_PUBLIC_zhiyu_SUPABASE_URL`、`NEXT_PUBLIC_zhiyu_SUPABASE_PUBLISHABLE_KEY` 与 `zhiyu_SUPABASE_SECRET_KEY`，无需改名；同集成的 `NEXT_PUBLIC_zhiyu_SUPABASE_ANON_KEY` 和 `zhiyu_SUPABASE_SERVICE_ROLE_KEY` 也受支持，publishable/secret 非空时优先。原无前缀配置仅作为兼容回退。服务角色永不使用 `NEXT_PUBLIC_*`。
 4. 在本地填 `.env.local`，在 Vercel 项目中分别配置环境变量。变量修改后重新构建部署。不要提交 `.env.local`，不要把 Secret key 放到 `NEXT_PUBLIC_*`。
@@ -50,10 +52,10 @@ R2 公共桶 URL 中的文件可以凭 URL 直接访问，**草稿里的家庭�
 - POST `/api/admin/media` 接收 `{filename,contentType,size}`，返回 `{media,uploadUrl,uploadHeaders}`；POST `/api/admin/media/[id]/complete` 无需 body，返回 `{media,url}`。
 - 所有 Cookie 写操作必须带与请求 URL 相同的 Origin（浏览器同站请求会自动提供）；缺失或跨站均 403，不扩大 API CORS。
 - 错误统一 `{error,code}`：未配置503、未登录401、非管理员403、格式400/415、超过1 MiB JSON413、资源404、修订/slug/媒体状态冲突409、数据库或存储暂不可用503。后台响应均 private,no-store，数据库原始错误/密钥不会返回客户端。
-- 富文本严格拒绝不支持节点、标记与属性；不执行 HTML。标题1–200字、slug小写 ASCII kebab-case ≤120字、摘要≤1000字、分类1–60字。图片/视频节点必须携带服务端媒体 UUID 和对应 storageKey；src 仅编辑预览。封面必须为上传图片的键。
+- 富文本严格拒绝不支持节点、标记与属性；不执行 HTML。标题1–200字、slug小写 ASCII kebab-case ≤120字、摘要≤1000字、分类1–60字。上传图片/视频节点必须携带服务端媒体 UUID 和对应 storageKey；src 仅编辑预览。六张精确白名单的内置插画可作封面及正文图片，无需媒体 UUID；其他本地路径与任意 URL 不允许。支持色块配色/落款、图片图注/日期/并排元数据，详见 [editor-guide.md](editor-guide.md)。
 
 ## 尚待真实云验证
 
-没有填入/读取真实凭据，没有真实写入、上传、部署或推送。用户接入后需要验证：SQL实际权限、管理员登录与刷新、非管理员/API越权、保存发布撤回、浏览器跨域预检和手机 File 直传、HEAD完成登记、公开快照与旧slug缓存刷新、R2重复PUT拒绝。PGlite验证实际SQL事务和角色权限，不能替代Supabase托管角色/REST及浏览器↔R2链路实测。
+本地真实 R2 图片/视频验证见 [storage-validation.md](storage-validation.md)。它不代表 Production 已配置相同凭据；用户已确认管理员登录成功。仍需在当前正式部署验证：SQL实际权限、管理员登录与刷新、非管理员/API越权、保存发布撤回、浏览器跨域预检和手机 File 直传、HEAD完成登记、公开快照与旧slug缓存刷新、R2重复PUT拒绝。PGlite验证实际SQL事务和角色权限，不能替代Supabase托管角色/REST及浏览器↔R2链路实测。
 
 官方参考：[Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client)、[getUser](https://supabase.com/docs/reference/javascript/auth-getuser)、[数据库函数权限](https://supabase.com/docs/guides/database/functions)、[R2 S3兼容表](https://developers.cloudflare.com/r2/api/s3/api/)、[AWS签名头配置](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-s3-request-presigner/)。

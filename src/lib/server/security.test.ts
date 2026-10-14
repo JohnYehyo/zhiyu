@@ -6,6 +6,7 @@ import {
   validateRevision,
   assertOrigin,
   verifyAdminIdentity,
+  validateDocument,
 } from "./security";
 const draft = {
   title: "Title",
@@ -152,5 +153,29 @@ describe("write boundary rejects unsafe or unauthorized input", () => {
       { filename: "x.mp4", contentType: "video/mp4", size: 201 * 1024 * 1024 },
     ])
       expect(() => validateUpload(input)).toThrow();
+  });
+});
+
+describe("journal content contracts", () => {
+  it.each(["picnic", "meadow", "flowers", "sea", "window", "sun"])("allows the approved %s illustration without a media record", (name) => {
+    const storageKey = `/assets/${name}.svg`;
+    const content = { type: "doc", content: [{ type: "image", attrs: { storageKey, layout: "pair", date: "2026.10.14", caption: "下午" } }] };
+    expect(validateDraft({ ...draft, coverKey: storageKey, content }).content).toEqual(content);
+  });
+  it.each(["/assets/demo.svg", "/assets/picnic.svg?x", "/assets/../picnic.svg", "blob/unverified.png"])("rejects an unissued image or cover %s", (storageKey) => {
+    expect(() => validateDraft({ ...draft, coverKey: storageKey })).toThrow();
+    expect(() => validateDocument({ type: "doc", content: [{ type: "image", attrs: { storageKey } }] })).toThrow();
+  });
+  it("keeps cloud images dependent on a media ID and excludes builtin video", () => {
+    const storageKey = "blob/11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.jpg";
+    expect(() => validateDocument({ type: "doc", content: [{ type: "image", attrs: { storageKey } }] })).toThrow();
+    expect(() => validateDocument({ type: "doc", content: [{ type: "video", attrs: { storageKey: "/assets/picnic.svg" } }] })).toThrow();
+  });
+  it("preserves bounded quote styles and rejects CSS or oversized metadata", () => {
+    const quote = (attrs: object) => ({ type: "doc", content: [{ type: "blockquote", attrs, content: [{ type: "paragraph", content: [{ type: "text", text: "记住这一刻" }] }] }] });
+    for (const tone of ["pink", "blue", "green", "yellow", "peach", "mint"]) expect(validateDocument(quote({ tone, attribution: "芝语" })).content?.[0].attrs).toEqual({ tone, attribution: "芝语" });
+    expect(validateDocument(quote({ attribution: "芝语" })).content?.[0].attrs).toEqual({ tone: "pink", attribution: "芝语" });
+    for (const attrs of [{ tone: "red" }, { style: "color:red" }, { attribution: "x".repeat(201) }]) expect(() => validateDocument(quote(attrs))).toThrow();
+    for (const attrs of [{ layout: "grid" }, { date: "x".repeat(41) }, { style: "width:100%" }]) expect(() => validateDocument({ type: "doc", content: [{ type: "image", attrs: { storageKey: "/assets/picnic.svg", ...attrs } }] })).toThrow();
   });
 });

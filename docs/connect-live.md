@@ -9,6 +9,7 @@
 - 还没有博客三个表：只复制 [query-bootstrap.sql](../supabase/setup/query-bootstrap.sql) 的全部内容执行一次。它包含建表、权限、发布函数及维护功能，不再执行原来的两份迁移。
 - 三个表已经由初始迁移创建，但还没有 `draft_posts.status` 和 `media.original_name`：只执行 [query-maintenance.sql](../supabase/setup/query-maintenance.sql)。
 - 已经有这两个字段：无需再运行以上脚本。
+- 本轮手账升级：运行 [query-journal.sql](../supabase/setup/query-journal.sql)，支持内置封面插画、色块落款和照片日期/并排。只更新相关函数，不重建表或删除数据。
 
 `cannot insert multiple commands into a prepared statement` 表示执行入口把多条 SQL 当成一个预备语句。新脚本将操作包在单个 `DO` 语句中，整体成功或回滚。不要拆分函数中的分号，也不要追加其他 SQL 一起运行。初始化脚本发现任何同名博客表就停止，不删除或覆盖已有数据；出现 `BLOG_TABLES_ALREADY_EXIST` 时先确认表和字段状态。
 

@@ -22,6 +22,7 @@ import {
   Upload,
   Save,
   Images,
+  BookOpen,
 } from "lucide-react";
 import type { DraftPost, PostDraft, RichNode, MediaRecord } from "@/lib/types";
 import { SaveCoordinator } from "@/lib/admin/save-coordinator";
@@ -40,6 +41,19 @@ import { RichContent } from "@/components/rich-content";
 import { EditorImage, EditorVideo } from "./media-node";
 import { protectEditorNavigation } from "@/lib/admin/navigation";
 import { MediaPicker } from "./media-picker";
+import { CategoryField } from "./category-field";
+import { JournalStyle } from "./journal-style";
+import { journalAssets, journalQuoteTones } from "@/lib/journal-assets";
+import {
+  journalTemplate,
+  type JournalTemplate,
+} from "@/lib/admin/journal-templates";
+
+import {
+  capturePhotoTarget,
+  verifyPhotoTarget,
+  type PhotoTarget as Replacement,
+} from "@/lib/admin/photo-replacement";
 
 const emptyDraft = (): PostDraft => ({
   title: "",
@@ -80,12 +94,15 @@ export function PostEditor({
   const [message, setMessage] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const [picker, setPicker] = useState<"body" | "cover" | null>(null);
+  const [coverLibrary, setCoverLibrary] = useState(false);
+  const pickerReplacement = useRef<Replacement | null>(null);
   const [upload, setUpload] = useState<{
     percent: number;
     busy: boolean;
     pending?: PendingUpload;
     kind?: "image" | "video";
     cover?: boolean;
+    replacement?: Replacement;
     error?: string;
   } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -93,7 +110,11 @@ export function PostEditor({
   const navigationProtection = useRef<ReturnType<
     typeof protectEditorNavigation
   > | null>(null);
-  const uploadTarget = useRef<{ kind: "image" | "video"; cover: boolean }>({
+  const uploadTarget = useRef<{
+    kind: "image" | "video";
+    cover: boolean;
+    replacement?: Replacement;
+  }>({
     kind: "image",
     cover: false,
   });
@@ -122,6 +143,7 @@ export function PostEditor({
       }),
       EditorImage,
       EditorVideo,
+      JournalStyle,
     ],
     immediatelyRender: false,
     content: draft.content,
@@ -152,6 +174,7 @@ export function PostEditor({
             bullet: editor.isActive("bulletList"),
             ordered: editor.isActive("orderedList"),
             quote: editor.isActive("blockquote"),
+            quoteAttrs: editor.getAttributes("blockquote"),
             link: editor.isActive("link"),
             media: editor.isActive("image")
               ? "image"
@@ -166,6 +189,7 @@ export function PostEditor({
           }
         : null,
   });
+
 
   useEffect(() => {
     if (
@@ -253,8 +277,19 @@ export function PostEditor({
     URL.revokeObjectURL(url);
   }
 
-  function chooseFile(kind: "image" | "video", cover = false) {
-    uploadTarget.current = { kind, cover };
+  function chooseFile(kind: "image" | "video", cover = false, replace = false) {
+    const current = editor
+      ? capturePhotoTarget(editor.state.doc, editor.state.selection.from)
+      : null;
+    if (replace && !current) {
+      setMessage("请先选择要替换的照片。");
+      return;
+    }
+    uploadTarget.current = {
+      kind,
+      cover,
+      ...(replace && current ? { replacement: current } : {}),
+    };
     if (fileInput.current) {
       fileInput.current.accept =
         kind === "image"
@@ -264,24 +299,45 @@ export function PostEditor({
     }
   }
 
+  function insertLayout(kind: JournalTemplate) {
+    if (!editor) return;
+    const template = journalTemplate(kind);
+    if (editor.isEmpty) editor.commands.setContent(template);
+    else
+      editor
+        .chain()
+        .focus()
+        .setTextSelection(editor.state.doc.content.size)
+        .insertContent(template.content ?? [])
+        .run();
+    setMessage(
+      "排版已插入。可以直接改文字；点击照片可替换图片、修改图注。原有正文已保留。",
+    );
+  }
+
   async function finishUpload(
     pending: PendingUpload,
     kind: "image" | "video",
     cover: boolean,
+    target?: Replacement,
   ) {
     const result = await completeUpload(pending.media.id);
     if (result.media.status !== "ready")
       throw new Error("媒体尚未确认就绪，请重试确认。");
     if ((kind === "image") !== result.media.mimeType.startsWith("image/"))
       throw new Error("媒体类型不匹配，请重新选择。");
-    insertMedia(result.media, cover);
+    insertMedia(result.media, cover, target);
     setUpload(null);
     setMessage(
       cover ? "封面已上传。" : "媒体已插入，点击媒体可填写说明和图注。",
     );
   }
 
-  function insertMedia(media: MediaRecord, cover: boolean) {
+  function insertMedia(
+    media: MediaRecord,
+    cover: boolean,
+    target?: Replacement,
+  ) {
     const url = mediaUrl(media.storageKey);
     if (media.status !== "ready") throw new Error("媒体尚未完成上传。");
     if (!url)
@@ -291,7 +347,18 @@ export function PostEditor({
     const kind = media.mimeType.startsWith("image/") ? "image" : "video";
     if (cover && kind !== "image") throw new Error("封面只能选择图片。");
     if (cover) updateField("coverKey", media.storageKey);
-    else
+    else if (target) {
+      if (!editor) throw new Error("编辑器尚未就绪，请重新选择照片。");
+      const old = verifyPhotoTarget(target, editor.state.doc, kind);
+      editor.view.dispatch(
+        editor.state.tr.setNodeMarkup(target.position, undefined, {
+          ...old.attrs,
+          mediaId: media.id,
+          storageKey: media.storageKey,
+          src: url,
+        }),
+      );
+    } else
       editor
         ?.chain()
         .focus()
@@ -309,10 +376,10 @@ export function PostEditor({
   }
 
   async function handleFile(file: File) {
-    const { kind, cover } = uploadTarget.current;
+    const { kind, cover, replacement: target } = uploadTarget.current;
     let pending: PendingUpload | undefined;
     setMessage("");
-    setUpload({ percent: 0, busy: true, kind, cover });
+    setUpload({ percent: 0, busy: true, kind, cover, replacement: target });
     try {
       validateUpload(file, kind);
       pending = await adminRequest<PendingUpload>("/api/admin/media", "POST", {
@@ -320,11 +387,25 @@ export function PostEditor({
         contentType: file.type,
         size: file.size,
       });
-      setUpload({ percent: 0, busy: true, pending, kind, cover });
+      setUpload({
+        percent: 0,
+        busy: true,
+        pending,
+        kind,
+        cover,
+        replacement: target,
+      });
       await putFile(file, pending, (percent) =>
-        setUpload({ percent, busy: true, pending, kind, cover }),
+        setUpload({
+          percent,
+          busy: true,
+          pending,
+          kind,
+          cover,
+          replacement: target,
+        }),
       );
-      await finishUpload(pending, kind, cover);
+      await finishUpload(pending, kind, cover, target);
     } catch (cause) {
       setUpload({
         percent: 0,
@@ -333,6 +414,7 @@ export function PostEditor({
         kind,
         cover,
         error: cause instanceof Error ? cause.message : "上传失败。",
+        replacement: target,
       });
     }
   }
@@ -449,6 +531,7 @@ export function PostEditor({
                         upload.pending!,
                         upload.kind!,
                         Boolean(upload.cover),
+                        upload.replacement,
                       );
                     } catch (cause) {
                       setUpload({
@@ -483,11 +566,11 @@ export function PostEditor({
             <p className="admin-preview-excerpt">{draft.excerpt}</p>
           )}
           {mediaUrl(draft.coverKey) && (
-            <img
-              src={mediaUrl(draft.coverKey)}
-              alt="文章封面"
-              className="admin-cover-preview"
-            />
+            <div className="prose admin-cover-preview">
+              <figure className="content-image">
+                <img src={mediaUrl(draft.coverKey)} alt="文章封面" />
+              </figure>
+            </div>
           )}
           <RichContent document={draft.content} />
         </article>
@@ -504,22 +587,11 @@ export function PostEditor({
             />
           </label>
           <div className="admin-meta-row">
-            <label>
-              分类
-              <input
-                maxLength={60}
-                value={draft.category}
-                onChange={(event) =>
-                  updateField("category", event.target.value)
-                }
-                list="journal-categories"
-              />
-            </label>
-            <datalist id="journal-categories">
-              <option value="日常碎片" />
-              <option value="慢慢长大" />
-              <option value="出去走走" />
-            </datalist>
+            <CategoryField
+              value={draft.category}
+              onChange={(value) => updateField("category", value)}
+              demo={demo}
+            />
             <details className="admin-details">
               <summary>摘要、地址与封面</summary>
               <div>
@@ -562,6 +634,13 @@ export function PostEditor({
                   </button>
                   <button
                     className="admin-button subtle"
+                    aria-expanded={coverLibrary}
+                    onClick={() => setCoverLibrary((value) => !value)}
+                  >
+                    <BookOpen size={15} /> 原型插画
+                  </button>
+                  <button
+                    className="admin-button subtle"
                     disabled={demo || Boolean(upload?.busy)}
                     onClick={() => setPicker("cover")}
                   >
@@ -577,8 +656,56 @@ export function PostEditor({
                     </button>
                   )}
                 </div>
+                {coverLibrary && (
+                  <div className="admin-illustrations" aria-label="插画封面">
+                    {journalAssets.map((asset) => (
+                      <button
+                        key={asset.key}
+                        type="button"
+                        aria-pressed={draft.coverKey === asset.key}
+                        onClick={() => {
+                          updateField("coverKey", asset.key);
+                          setCoverLibrary(false);
+                        }}
+                      >
+                        <img src={asset.key} alt="" />
+                        <span>{asset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </details>
+          </div>
+          <div className="admin-compose-tools" aria-label="手账排版">
+            <span>一键排版</span>
+            <button
+              type="button"
+              className="admin-button subtle"
+              onClick={() => insertLayout("journal")}
+              disabled={!editor}
+            >
+              <BookOpen size={15} />
+              日记模板
+            </button>
+            <button
+              type="button"
+              className="admin-button subtle"
+              onClick={() => insertLayout("note")}
+              disabled={!editor}
+            >
+              <Quote size={15} />
+              一句话色块
+            </button>
+            <button
+              type="button"
+              className="admin-button subtle"
+              onClick={() => insertLayout("photos")}
+              disabled={!editor}
+            >
+              <Images size={15} />
+              双照片
+            </button>
           </div>
           <div className="admin-toolbar" role="toolbar" aria-label="正文格式">
             {[
@@ -614,7 +741,7 @@ export function PostEditor({
                 action: () => editor?.chain().focus().toggleOrderedList().run(),
               },
               {
-                label: "引用",
+                label: "手账色块",
                 icon: Quote,
                 pressed: active?.quote,
                 action: () => editor?.chain().focus().toggleBlockquote().run(),
@@ -690,9 +817,10 @@ export function PostEditor({
               title={demo ? "本地示例不连接素材库" : "选择已上传素材"}
               aria-label="选择已上传素材"
               disabled={demo || Boolean(upload?.busy) || !editor}
-              onClick={() =>
-                setPicker((value) => (value === "body" ? null : "body"))
-              }
+              onClick={() => {
+                pickerReplacement.current = null;
+                setPicker((value) => (value === "body" ? null : "body"));
+              }}
             >
               <Images size={17} />
             </button>
@@ -700,11 +828,16 @@ export function PostEditor({
           {picker && (
             <MediaPicker
               key={picker}
-              imagesOnly={picker === "cover"}
-              onClose={() => setPicker(null)}
+              imagesOnly={picker === "cover" || Boolean(pickerReplacement.current)}
+              onClose={() => { pickerReplacement.current = null; setPicker(null); }}
               onSelect={(media) => {
                 try {
-                  insertMedia(media, picker === "cover");
+                  insertMedia(
+                    media,
+                    picker === "cover",
+                    pickerReplacement.current ?? undefined,
+                  );
+                  pickerReplacement.current = null;
                   setPicker(null);
                   setMessage(
                     picker === "cover"
@@ -721,6 +854,58 @@ export function PostEditor({
           )}
           <EditorContent editor={editor} className="admin-writing-area" />
           {!editor && <p role="status">正在准备编辑器…</p>}
+          {active?.quote && (
+            <div className="admin-note-fields">
+              <label>
+                色块配色
+                <select
+                  value={String(active.quoteAttrs.tone || "pink")}
+                  onChange={(event) =>
+                    editor
+                      ?.chain()
+                      .updateAttributes("blockquote", {
+                        tone: event.target.value,
+                      })
+                      .run()
+                  }
+                >
+                  {journalQuoteTones.map((tone) => (
+                    <option key={tone} value={tone}>
+                      {
+                        {
+                          pink: "樱花粉",
+                          blue: "天空蓝",
+                          green: "草坪绿",
+                          yellow: "奶油黄",
+                          peach: "蜜桃粉",
+                          mint: "薄荷绿",
+                        }[tone]
+                      }
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                落款
+                <input
+                  maxLength={200}
+                  value={String(active.quoteAttrs.attribution || "")}
+                  placeholder="例如：记在今天的小日记里"
+                  onChange={(event) =>
+                    editor
+                      ?.chain()
+                      .updateAttributes("blockquote", {
+                        attribution: event.target.value,
+                      })
+                      .run()
+                  }
+                />
+              </label>
+              <p className="admin-hint">
+                色块内直接写文字；按两次回车回到普通段落。
+              </p>
+            </div>
+          )}
           {active?.media && (
             <div className="admin-media-fields">
               <p>当前{active.media === "image" ? "图片" : "视频"}</p>
@@ -754,6 +939,75 @@ export function PostEditor({
                   }
                 />
               </label>
+              {active.media === "image" && (
+                <>
+                  <label>
+                    照片日期
+                    <input
+                      maxLength={40}
+                      placeholder="例如：May, 2026"
+                      value={String(active.attrs.date || "")}
+                      onChange={(event) =>
+                        editor
+                          ?.chain()
+                          .updateAttributes("image", {
+                            date: event.target.value,
+                          })
+                          .run()
+                      }
+                    />
+                  </label>
+                  <label>
+                    照片排版
+                    <select
+                      value={String(active.attrs.layout || "single")}
+                      onChange={(event) =>
+                        editor
+                          ?.chain()
+                          .updateAttributes("image", {
+                            layout: event.target.value,
+                          })
+                          .run()
+                      }
+                    >
+                      <option value="single">单张拍立得</option>
+                      <option value="pair">与相邻照片并排</option>
+                    </select>
+                  </label>
+                  <div className="admin-photo-actions">
+                    <button
+                      type="button"
+                      className="admin-button subtle"
+                      disabled={demo || Boolean(upload?.busy)}
+                      onClick={() => chooseFile("image", false, true)}
+                    >
+                      <ImagePlus size={15} />
+                      替换照片
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-button subtle"
+                      disabled={demo || Boolean(upload?.busy)}
+                      onClick={() => {
+                        pickerReplacement.current = editor
+                          ? capturePhotoTarget(editor.state.doc, editor.state.selection.from)
+                          : null;
+                        if (!pickerReplacement.current) {
+                          setMessage("请先选择要替换的照片。");
+                          return;
+                        }
+                        setPicker("body");
+                      }}
+                    >
+                      <Images size={15} />
+                      从素材替换
+                    </button>
+                  </div>
+                  <p className="admin-hint">
+                    连续两张照片都设为“并排”，会组成一组；手机上自动上下排列。
+                  </p>
+                </>
+              )}
               <button
                 className="admin-button subtle"
                 onClick={() => editor?.chain().focus().deleteSelection().run()}

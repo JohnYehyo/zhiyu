@@ -5,8 +5,30 @@ import { mediaUrl } from "@/lib/media";
 
 export function RichContent({ document }: { document: RichNode }) {
   let heading = 0;
+  function renderChildren(nodes: RichNode[] = []): ReactNode[] {
+    const result: ReactNode[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const current = nodes[i],
+        next = nodes[i + 1];
+      if (
+        current.type === "image" &&
+        current.attrs?.layout === "pair" &&
+        next?.type === "image" &&
+        next.attrs?.layout === "pair"
+      ) {
+        result.push(
+          <div className="content-photo-pair" key={`pair-${i}`}>
+            {render(current, i)}
+            {render(next, i + 1)}
+          </div>,
+        );
+        i++;
+      } else result.push(render(current, i));
+    }
+    return result;
+  }
   function render(node: RichNode, key: number): ReactNode {
-    const children = node.content?.map(render);
+    const children = renderChildren(node.content);
     const attrs = node.attrs ?? {};
     switch (node.type) {
       case "doc":
@@ -47,7 +69,16 @@ export function RichContent({ document }: { document: RichNode }) {
           children,
         );
       case "blockquote":
-        return <blockquote key={key}>{children}</blockquote>;
+        return (
+          <blockquote key={key} data-tone={attrs.tone ?? "pink"}>
+            {children}
+            {typeof attrs.attribution === "string" && attrs.attribution && (
+              <footer className="note-attribution">
+                — {attrs.attribution}
+              </footer>
+            )}
+          </blockquote>
+        );
       case "bulletList":
         return <ul key={key}>{children}</ul>;
       case "orderedList":
@@ -76,6 +107,10 @@ export function RichContent({ document }: { document: RichNode }) {
         if (!src) return null;
         const caption = typeof attrs.caption === "string" ? attrs.caption : "";
         const alt = typeof attrs.alt === "string" ? attrs.alt : "";
+        const date =
+          node.type === "image" && typeof attrs.date === "string"
+            ? attrs.date
+            : "";
         const poster =
           typeof attrs.poster === "string" ? mediaUrl(attrs.poster) : "";
         return (
@@ -97,7 +132,12 @@ export function RichContent({ document }: { document: RichNode }) {
                 aria-label={alt || caption || "日记视频"}
               />
             )}
-            {caption && <figcaption>{caption}</figcaption>}
+            {(caption || date) && (
+              <figcaption>
+                {caption}
+                {date && <span className="photo-date">{date}</span>}
+              </figcaption>
+            )}
           </figure>
         );
       }

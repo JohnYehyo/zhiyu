@@ -1,4 +1,5 @@
 import type { RichNode } from "../types";
+import { isJournalAsset } from "../journal-assets";
 
 /** Trim editor-only defaults at the write boundary, retaining verified media identities. */
 export function serializeEditorDocument(value: RichNode): RichNode {
@@ -6,7 +7,9 @@ export function serializeEditorDocument(value: RichNode): RichNode {
   if (value.text !== undefined) node.text = value.text;
   if (value.content) node.content = value.content.map(serializeEditorDocument);
   const keys = ["image", "video"].includes(value.type)
-    ? ["mediaId", "storageKey", "src", "alt", "caption"]
+    ? ["mediaId", "storageKey", "src", "alt", "caption", ...(value.type === "image" ? ["layout", "date"] : [])]
+    : value.type === "blockquote"
+      ? ["tone", "attribution"]
     : value.type === "heading"
       ? ["level"]
       : value.type === "orderedList"
@@ -16,6 +19,7 @@ export function serializeEditorDocument(value: RichNode): RichNode {
     keys.flatMap((key) => {
       const attr = value.attrs?.[key];
       if (key === "src" && !attr) return [];
+      if (key === "mediaId" && attr === "" && value.type === "image" && isJournalAsset(value.attrs?.storageKey)) return [];
       return attr !== null && attr !== undefined ? [[key, attr]] : [];
     }),
   );
