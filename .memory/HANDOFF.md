@@ -3,44 +3,46 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-用户已确认登录成功。本轮修复封面/照片/视频上传配置反馈；分类选择与新建；6张原型插画封面；可直接编辑的手账色块、整篇模板、双照片；照片默认拍立得。成功指标：集成测试/构建与桌面手机平板交互通过，现有文章保存发布安全约束不退化，并明确完成云上传配置与新SQL升级的状态。
+本轮用户五项请求已完成：真实图片/封面/视频上传配置，分类可选可输入新名称，原型插画封面，易用手账色块/整篇模板/双照片排版，照片默认拍立得。代码已提交推送并部署Production，真实管理员上传、视频播放、保存刷新与分类复用通过。
 
 ### 当前阶段
-awaiting_user_approval
+done
 
 ### 重要文件和近期决定
-- feat/first-version，HEAD/remote611b363；当前源码修改尚未提交，.idea用户文件勿读删提交。父目录原型勿改。
-- post-editor：CategoryField、原型插画6张、一键日记/色块/双照片、选择色块后配色与落款、选择照片后图注日期/并排/上传替换或素材替换；模板追加不覆盖正文。rich-content与editor-media均拍立得，读者端相邻pair组成双列，手机单列。
-- journal-assets只允许6个精确本地路径；内置图无需mediaId，云图仍blobkey+UUID+owner/ready。实际Tiptap默认空mediaId仅内置图序列化时移除，假非空ID不能绕过。
-- 新supabase/migrations/202610140001_journal.sql和setup/query-journal.sql更新snapshot_node/publish_post，仅兼容内置素材与新排版属性；旧迁移不改。真实数据库尚未应用，应用前不能称内置图能线上发布。
-- categories读取当前管理员自己的draft分类，不建新表；新名称随保存文章持久化。R2 getR2ConfigStatus仅报告字段名与configured/missing/invalid，配置缺失统一STORAGE_NOT_CONFIGURED，不回显值。
-- R2实际资源blog桶/blobprefix/publichttps://pub-d631369681144c86b273231bd9377fe0.r2.dev。以前本地PNG/MP4真实链路已成功，见docs/storage-validation.md；正式Vercel R2环境尚需新鲜只读核对。昨天UI只见Supabase+ADMIN，别把历史快照当当前事实。
-- 真实云credential保存需用户明确具体凭据到Vercel项目/环境授权，未读.env.local密钥，不输出秘密。新云SQL/部署也未执行。既有授权为GitHub同分支推送；前次ADMIN更正+Production构建授权已完成。
-- 登录用户已验收成功，勿再改Auth；当前Production HeKYK5acQgCWeSYYfw4hWpQqtNpQ/source611b363/固定zhiyu-beta。VercelGitProductionBranch仍master，新推送可能Preview，不擅改分支。
+- 功能源码commit176bef6，feat/first-version已推送；Production BUXhRA78NVhsJpjsS5DuXijFQP65/zhiyu-pfpeazfmj-johnyehyos-projects.vercel.app Ready，正式zhiyu-beta域已指向；没改GitProductionBranch(master)或ADMIN/Auth。后续Git推送仍可能Preview，切勿把文档Preview当生产代码变更。
+- 用户明确授权仅读取本地R2六项现有配置（含两凭据）保存到Vercel zhiyu Production，执行Supabase手账兼容SQL及部署新版。全部完成；两项凭据Secret、四项Config，全为Production，不扩大到Preview。读取副本只在CUA内存，已置空，未打印/写临时密钥文件/Git/Reveal。
+- R2blog桶/blobprefix/publichttps://pub-d631369681144c86b273231bd9377fe0.r2.dev。失败根因是Vercel没有任何R2变量；新鲜UI筛选NoResults证据/tmp/zhiyu-vercel-r2-missing.png，配置成功/tmp/zhiyu-vercel-r2-configured.png。
+- Supabase指定mgbahqnxoraqmljibsrc SQL Editor单DO query-journal.sql执行Success.NoRowsReturned，queryf940c06f-9e19-4fc9-8dfd-ff9e2c80752d。更新snapshot_node/publish_post，无删表/文章，旧迁移不改、不重复bootstrap。截图/tmp/zhiyu-journal-sql-upgraded.png。
+- post-editor支持CategoryField、6插画cover、一键日记/色块/双照片；点击色块改六色与落款，点击照片改图注/日期/并排，上传或素材替换。模板追加不覆盖正文。read/editor统一白边胶带拍立得，手机双照片单列。
+- 新分类随文章保存持久化，GETcategories仅取当前owner的draft分类，不新增taxonomy表。新名称已有分类列表自动复用；删掉所有使用它的文章会失去该名称，不声称独立分类管理。
+- journal-assets精确6个本地路径无需mediaId；任意其他本地路径/URL禁止。云图仍blobkey+UUID+owner/ready校验。序列化只对获准内置图丢弃Tiptap默认空mediaId，假非空ID不绕过。
+- 照片替换onclick同步捕获实时选区+不可变完整doc；非image或任何文档变化都会拒绝旧目标，不回退插到别的选区；已确认上传文件留素材库。保持原图注/date/layout。
+- .idea用户目录勿读删提交；父目录原型勿改。Auth登录已用户确认成功，不再重新调查邮件/UID。真实凭据一般仍不得读取；本轮具体许可仅已完成R2传送，不扩展其他密钥/权限。
 
 ### 已完成
-- category_input、journal_contracts、upload_readiness三个分工源码已整合。root UI/render/templates/styles实现完成，准备真实浏览器验证。
-- 已启用review_journal只读独立审查当前diff；其他agent完成，不需重复实现。
+- 新功能实现、三项独立任务整合、独立review_journal最终无Important、功能代码176bef6推送、六项云配置、增量SQL、Production部署。
+- 正式管理员既有ChromeCookie进入/admin及新稿件，未读密码/token。合成图片与公开MDN花朵视频真实上传，封面上传、照片替换、视频完整播放、正文预览、真实保存并刷新恢复，新分类复用。
+- 保留一篇“功能验收草稿（未发布）”：https://zhiyu-beta.vercel.app/admin/posts/8611d30d-543d-463c-99ef-06f4c54c7c5b ，slugfeature-check-20261014，category成长记录，picnicbuiltincover、163byte64×48合成PNG/date2026.10.14+caption、可改模板粉色note/落款、双插画、公开花朵MP4。没有发布或删除用户内容。
 
 ### 已运行的命令 + 结果
-- 本轮集成32files185tests PASS；typecheck PASS；lint PASS。实际Tiptap默认attrs回归RED→GREEN、PGlite prepared-query旧数据/发布权限与snapshot兼容PASS。
-- 最终33files190tests、typecheck、lint、production build、git diffcheck PASS。review_journal最终无Important遗留。审查发现并修复：替换照片只能用图片、同步捕获当前选区、任何正文变动拒绝旧目标而不回退插入；实际PM回归覆盖重复同key照片。
-- CUA真实/admin/demo：旧文保留追加note/photos，mint与落款/图注/date进入预览，清空后整篇journal模板成功；六插画gallery、flowerscover正常。390手机照片单列/编辑表单305px无溢出；768平板双列/桌面无溢出。下载实际JSON通过validateDraft，临时QA test已移到/tmp不提交。
-- CUA发现模板空text导致Tiptap拒绝插入，真实schema回归RED→GREEN：空段落content[]。Browser新鲜只读VercelEnvVariables全环境列表无R2项，筛选R2_明确NoResults。截图/tmp/zhiyu-vercel-r2-missing.png；新版预览/tmp/zhiyu-journal-preview.png、mobile/editor-mobile/desktop均/tmp。Chrome extension仍policy加载失败，已用允许的cua.getApp原生AX完成只读，不Reveal密钥/无云写入。
-- 以前R2真实PNG PUT/HEAD/GET字节相等，MP4 1128375bytes PUT/HEAD/GET、Range206、浏览器5.055秒播放通过；不是完整正式登录上传的证据，不重做无关测试。
+- 最终33files190tests PASS；typecheck PASS；lint PASS；production build PASS；git diffcheck PASS。新PGlite升级/owner/revision/权限事务通过，真实Tiptap默认attrs与空段落schema、重复照片替换目标回归RED→GREEN。
+- CUA本地实际编辑器：note/photos追加保留旧文，空白整篇journal模板、6插画cover、mint配色与落款、日期/图注入预览；实际导出JSON通过服务端validateDraft。390手机与768平板/桌面无横向溢出，pair手机单列，mobileinspector各305px。截图/tmp/zhiyu-journal-{desktop,mobile,preview,editor-mobile}.png。
+- 真正Production图片：有效163byte64×48PNG上传→HEAD→ready→插入，实际naturalWidth64；替换保留caption/date；封面上传返回“封面已上传”，actualimgloaded64。
+- 真正ProductionMP4 1128375bytes上传→ready→video，duration5.055/readyState4，真实播放pausedfalse后endedtrue/time5.055，无error。最终真实刷新后preview4images均loaded，quote pink+落款、pair1组、无overflow，分类下拉含成长记录。
+- 首次68byte测试PNG仅测上传且CRC无效，随后使用标准库生成有效163byte64×48并替换；两者均为合成测试，未选个人媒体，旧测试素材未删除。其他留存上传为封面同163byte及MP4。R2没自动清理，别盲目删孤儿。
+- BrowserChrome扩展初期requestheaderpolicy加载失败，原生CUA AX完成云表单；后来BrowserAPI可用。filechooser.setFiles缺AllowFileURLs，未扩大扩展权限，取消debug拦截后用系统Open精确选/tmp/zhiyu-upload-check.png及/tmp/zhiyu-storage-smoke.mp4完成上传，不再要求用户配置扩展。
+- 真实数据库保存状态“草稿已保存”，路径从new转为8611d30d...；reload从Supabase恢复，preview保留。线上截图/tmp/zhiyu-live-journal-preview.png，部署证据/tmp/zhiyu-journal-production-ready.png，详见docs/storage-validation.md，写作操作docs/editor-guide.md。
 
 ### 已知问题和“请勿重读”列表
-- 不重查Auth/email/ADMIN。不要再要求用户发邮件或打开旧验证链接。
-- category/JSON/SQL契约已调查，无代码变动时从相关agent段使用结论；不读全库。
-- .env.local实际凭据不能读/打印；bundle Node PATH进程设置，不安装系统工具。
+- Auth/邮件/ADMIN、R2链路、分类/JSON/SQL契约与新UI已充分调查与验证；未修改时不重做全库搜索或发测试邮件。
+- 部署源码176bef6，后续仅文档/HANDOFF提交不代表生产功能落后。不重复SQL升级或初始化，不改变master分支设置。
+- 当前真实验收稿与测试媒体保留，未公开/删除。旧共享johnyehyo桶勿动。公共草稿媒体知道URL可访问；视频不转码，暂无孤儿清理。这些既有架构限制无需每次重复警告。
 
 ### 待验证 / 证据缺口
-- 新版demo交互和JSON校验已完成；真实管理员线上File上传/素材替换/保存发布仍待云配置后验收。
-- Production R2变量是否齐全及部署使用，Supabase新排版SQL应用，实际登录上传保存发布尚待云验收。
-- 独立审查/生产构建/diffcheck完成；准备按既有GitHub授权提交推送。尚未执行任何新云SQL/变量写入/部署。
+- 本轮不公开发布验收稿；真实公开发布/缓存及个人手机拍摄编码的长期体验未执行。SQL实际升级成功与PGlite发布兼容已验证，不把未执行真人发布称已验收。
 
 ### 下一步任务
-提交推送已验证代码。请求具体授权：仅读取本地R2六项现有配置（含AccessKey/Secret）保存到Vercel zhiyu Production，执行Supabase单DO query-journal.sql兼容升级，再部署新版Production；凭据不回显/不提交。Browser规则要求保存/发送凭据的具体数据+目的地确认，AGENTS禁止.env读取待用户明确覆盖。本轮代码可审阅后再问，不能把上传云缺口称done。收到授权从该步继续，别重查登录/重做初始化；若用户自行配置则只读确认后推进。
+本轮完成，用户可打开保留的未发布验收稿直接修改、测试自身照片。新问题按具体证据调查，不重复设置/登录/建表。Chrome真实草稿tab1738020200已markDeliverable；Supabase本轮query新tab仍在。IAB临时本地QA可关闭；本地生产3102 session94175是否保留按预览需要，结束时可停。最后更新文档/HANDOFF提交推送，勿带.idea或真实密钥。
 
 ## [Codex-cloud-setup]
 

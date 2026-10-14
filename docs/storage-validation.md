@@ -25,9 +25,20 @@
 
 视频采用 [MDN 的公开花朵示例](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video)。测试元数据仅保存在内存，未绕过正式接口鉴权、未在 Supabase 创建素材记录，也未发布文章。
 
+## 2026-10-14 正式网站验收
+
+- Vercel zhiyu Production 的六项 R2 配置已保存；两项凭据为 Secret。新版部署 `BUXhRA78NVhsJpjsS5DuXijFQP65`（源码 `176bef6`）Ready，正式域名指向新版。
+- Supabase SQL Editor 运行 `query-journal.sql`，返回 `Success. No rows returned`，兼容内置插画和手账元数据。
+- 使用用户已有管理员浏览器会话进入正式 `/admin/posts/new`，未读取密码或会话 token。合成 163 字节、64×48 PNG 完成真实文件直传、服务端 HEAD 核验、ready 登记及正文显示；替换保留图注和日期。
+- 封面上传同一合成图片，返回“封面已上传”，实际图片已加载、naturalWidth=64。
+- 1,128,375 字节公开花朵 MP4 完成正式上传与 ready 登记；浏览器 duration=5.055、readyState=4，实际播放到 ended=true、currentTime=5.055，无播放错误。
+- 自动选文件工具缺浏览器扩展的本地文件权限，改用系统选择器完成；没有扩大扩展权限，也没有选取用户个人照片或视频。
+
+上述上传发生在真实应用鉴权及真实 Supabase/R2 链路中，区别于前一天的独立存储测试。验收内容保留为[功能验收草稿（未发布）](https://zhiyu-beta.vercel.app/admin/posts/8611d30d-543d-463c-99ef-06f4c54c7c5b)；真实保存成功，刷新后封面、正文、色块落款、日期、图片与视频仍在。新分类“成长记录”已从数据库出现在已有分类列表。没有发布到公共首页。
+
 ## 仍需正式网站验收
 
-上述结果证明本地配置连接真实存储后的媒体链路，不证明 Vercel Production 已配置相同 R2 凭据。管理员完成登录后，需要在正式编辑器上传图片与视频、保存、刷新、发布并检查公开文章。
+正式上传、封面显示和视频播放已验证。公开文章发布后的缓存与真实家庭媒体在手机上的上传体验，仍需后续使用验收；本轮不发布测试内容。
 
 测试对象放在 `blob/00000000-0000-4000-8000-000000000000/`，不会自动出现在素材库：
 
