@@ -30,7 +30,7 @@ export function Journal({
   return (
     <>
       <div className="journal-tools">
-        <div className="filters" role="group" aria-label="按分类筛选日记">
+        <div className="filters" role="group" aria-label="按分类筛选记录">
           {categories.map((item) => (
             <button
               key={item}
@@ -47,7 +47,7 @@ export function Journal({
             type="search"
             value={query}
             placeholder="找一段小日子…"
-            aria-label="搜索日记"
+            aria-label="搜索记录"
             onChange={(event) => setQuery(event.target.value)}
           />
           {query && (
@@ -63,7 +63,7 @@ export function Journal({
         className="small"
         style={{ marginBottom: 16 }}
       >
-        {query || category !== "全部" ? `找到 ${visible.length} 篇日记` : null}
+        {query || category !== "全部" ? `找到 ${visible.length} 篇记录` : null}
       </div>
       {visible.length === 0 && (
         <p className="empty-state">

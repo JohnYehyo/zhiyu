@@ -7,10 +7,9 @@ import { ArrowRight, Menu, Search, X } from "lucide-react";
 import { FlowerMark } from "./flower-mark";
 
 const links = [
-  { href: "/", label: "日记" },
+  { href: "/", label: "首页" },
   { href: "/album", label: "相册" },
-  { href: "/about#letter", label: "写给你" },
-  { href: "/archive", label: "归档" },
+  { href: "/archive", label: "记录" },
   { href: "/about", label: "关于" },
 ];
 
@@ -47,7 +46,7 @@ export function SiteHeader() {
           <Link
             className="search-button"
             href="/archive#search"
-            aria-label="搜索日记"
+            aria-label="搜索记录"
             onClick={() => setOpen(false)}
           >
             <Search className="icon" />
@@ -70,7 +69,7 @@ export function SiteHeader() {
           aria-label="手机博客导航"
         >
           {links.map(({ href, label }) => (
-            <Link key={href} href={href} onClick={() => setOpen(false)}>
+            <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} onClick={() => setOpen(false)}>
               {label}
               <ArrowRight className="icon" />
             </Link>

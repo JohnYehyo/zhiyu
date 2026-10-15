@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, PenLine } from "lucide-react";
 import { getPublishedPosts } from "@/lib/posts";
 import { mediaUrl } from "@/lib/media";
 import { formatDate } from "@/lib/reading";
@@ -90,9 +90,10 @@ export default async function Home() {
       <section className="journal" id="journal" aria-labelledby="journal-title">
         <div className="section-intro">
           <h2 id="journal-title">一页，又一页</h2>
-          <Link className="text-link" href="/archive">
-            所有日记 <ArrowRight className="icon" />
-          </Link>
+          <div className="section-actions">
+            <Link className="text-link" href="/archive">所有记录 <ArrowRight className="icon" /></Link>
+            <Link className="text-link" href="/admin/posts/new" prefetch={false}><PenLine size={14} />写一篇文字</Link>
+          </div>
         </div>
         <Journal posts={posts} />
       </section>

@@ -3,13 +3,16 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-用户明确要求独立上传/单独管理相册（不从日记汇总），并“继续”。已完成本地代码与测试/交互/审查，现用户明确批准在既有Supabase执行相册单DO SQL新增私有表及仅明确公开照片的快照读取权限，再部署VercelProduction。成功标准：云SQL成功、正式站相册管理可用、真实synthetic图片添加保存刷新/公开状态验证；不自动公开个人照片。
+当前任务：用户要求导航首页/相册/记录/关于（删重复写给你，日记改首页，归档选“记录”）；管理入口分别归相册与记录，首页仅一个“写一篇文字”快速入口。已按明确请求实现，不改现有URL/SQL/权限/API鉴权，待桌面手机浏览器/全套验证、审查、推送部署。
 
 ### 当前阶段
-implementation
+verification
 
 ### 重要文件和近期决定
-- repozhiyu/feat/first-version当前HEADfdd30c2，Production4yGfNKfMS2hvssk2HEsFZq7NV8jU旧版入口修复已Ready。GitProductionBranch仍master，推送自动Preview；新相册要明确Production重建。
+- 本轮root新改site-header/footer、home/archive/album页、admin文章/相册页与AdminShell回退文案。去全局泛化管理入口、文章页去跨相册链接，相册/记录标题旁仅自身manage入口，首页单write快捷入口（prefetchfalse）。所有原URL兼容保留。
+- 必要流程修正：AdminGuard returnTo、loginpage searchParams.next、LoginForm returnTo只接受adminDestination白名单(/admin,/admin/album,/admin/posts/new,/admin/posts/UUID)，无外部/query目标；登录POST API及freshgetUser/UID不改。相册/新建/编辑文章Guard传入自身target；文章admin默认。匿名entry不丢目标，已有session登录页直接回目标。
+- scoped新测试3files10tests PASS，页面管理归属/无重复nav/首页唯一write/Footer无admin/相册missing-schema也有管理入口，以及guard/login目标/非法external数组回退。需全套与实际HTTP/手机菜单继续。当前未提交产品修改，旧HANDOFF/相册plandirty为此前本地交接保留。
+- repozhiyu/feat/first-version HEAD/remote8350d88，独立相册Production6wqVLMk1vPYuj5mEDhJsRXFn1HKj/zhiyu-bo1mk23dd-johnyehyos-projects.vercel.app Ready/source8350d88，固定Beta已指向；先前4yGfNKfM是旧版入口修复。GitProductionBranch仍master，推送自动Preview；新相册要明确Production重建。
 - 用户本轮批准相册SQL/新表公开快照权限/Production部署，无新凭据操作，不读取.env。Supabaseprojectmgbahqnxoraqmljibsrc；R2blog/blob/publichttps://pub-d631369681144c86b273231bd9377fe0.r2.dev现Production配置已完整。ADMIN/Auth不改、旧johnyehyo桶勿动。
 - spec/plan docs/superpowers/{specs,plans}/2026-10-14-album-*.md，流程已确认：上传或reuse ready图片→相册private→图注/说明/日期→显式公开；公开/收起同时保存当前表单，移出仅删相册链接/快照保留R2/日记。
 - rootalbum-types/publicreader/publicAPI/gallery；album_backend私有repo/validators/adminAPI/two-tableRPCSQL；album_admin管理组件/workflow/tests/page与admin入口。均完成勿重做。
@@ -20,10 +23,13 @@ implementation
 - .idea用户目录/父原型勿读删提交；真实凭据不要读或输出；不创建PR，不改云主分支/ADMIN/CORS。
 
 ### 已完成
+- 2026-10-15按用户条件清理Downloads/strawberry-afternoon-draft.json：SHA256与/tmp/zhiyu-journal-editor-draft.json已验证测试导出完全一致，项目src/docs无依赖引用；仅删除Downloads原件并确认不存在，云端稿件/媒体不动，临时测试证据未删除。
 - 实现完整独立相册、公有/私有分离、上传ready/add不同retry身份保留、revision冲突、重用图片不重复、metadata/publictoggle、手机编辑与safeviewer。
 - 独立review_album最终无Important，发现分页dedup问题已SSR回归RED→GREEN。第一build新PG测试3处unknown类型FAIL，已query泛型修正，复建PASS。
 
 ### 已运行的命令 + 结果
+- 2026-10-15导航任务：最终44files256tests PASS；lint PASS；production build PASS；build后typecheck PASS；review_navigation独立审查无问题。真实localhost3102桌面四项nav，home管理链接只1/write，album只1/managealbum，records只1/managearticles。匿名write实际到login?next=/admin/posts/new，album到login?next=/admin/album；没有输入账号密码/发信。
+- 实际390手机menu首页/相册/记录/关于，records aria-current正确，切相册后menu关闭，相册无overflow；768无overflow。首页390快速入口唯一，宽80height33，不抢主视觉。截图/tmp/zhiyu-navigation-{album-desktop,album-mobile,records-mobile,home-mobile}.png。3102devsession83086已停止，build成功，不提交dev生成next-env噪声。
 - 最终41files246tests PASS；lint PASS；production build PASS；构建后typecheck PASS；git diffcheck待提交前复跑。
 - backend35tests真实PGlite+实际SDKHTTP→SQL端到端，owner/readypendingvideo/duplicate/revision/publicanon权限/长度date/remove保留media；不是云多连接并发证据。
 - root6tests公开投影/错误分类/参数/图库SSR转义无日记链接/动态页终止；admin13tests workflow上传/确认/add失败retry身份、重复清理、输入ready/type及当前表单revision、SSR入口与已有navigation。
@@ -35,11 +41,12 @@ implementation
 - 相册新代码已查，不重读全库；按agent段和必要文件继续。公开R2草稿知道URL仍可访问、无转码/孤儿清理是既有架构，不因此改权限。
 
 ### 待验证 / 证据缺口
-- 真实Supabase新相册SQL未执行，Production相册未部署；用户刚批准，现在继续。真实后台素材添加/保存刷新/公开/收起与公共快照验收未完成。
+- 真实Supabase相册SQLSuccess.NoRowsReturned（queryd82e5ecf-743e-4774-8fbc-0a7eb7edd5e5；截图/tmp/zhiyu-album-sql-success.png）；相册Production6wqVLMk1... Ready并固定Beta/source8350d88已证。curl匿名/publicAPI200 {photos:[],paginationpage1size24total0}；admin/album307到login；IAB正式/album中文独立照片空态，没有任何日记卡片。截图/tmp/zhiyu-album-live-empty.png。正式相册目前没有记录，真实后台素材添加/保存刷新/公开收起未执行。
 - 本轮不自行发布任何用户个人媒体。仅合成测试图可用于验收，最终未公开；若移出测试记录触发永久删除则不可未经另确认执行。
 
 ### 下一步任务
-按已授权执行单DOquery-album.sql到指定Supabase；成功后commit/push一次所有本轮代码+交接docs，Production重建（不用旧cache），验证Readysource/domain。正式/admin/album选明确合成63×48测试媒体或新合成PNG，默认private，编辑保存refresh看持久化；如需短暂公开合成测试再收起可作为授权功能验收，不发布个人照片。最后更新本地HANDOFF不再为文档触发额外Preview。Chrome新bindingID1，IAB3；cua变量albumChrome/albumBrowser/albumQATab/albumAdminQA/albumFs存在。保持新的云截图与UI证据，结束停60229fixture。
+本轮导航代码/全套256tests/lint/build/typecheck/真实本地交互/独立review已完成，准备一次提交相关源码+handoff；按既有同博客发布授权重建Production，确认Ready/current源码及固定Beta域公开导航。ChromeID3本轮可用，navChrome/navDeployTab(Verceldeployments新tab1738020702)；IABID2 navBrowser/navTab(local),viewport已reset。gitpush可直接沿用临时SSHProxyCommand本地SOCKS7890避免直连22断开，保持默认hostkey验证不改全局配置。无SQL/密钥/权限修改，不需重复问授权。
+旧轮部署8350d88/6wqVLMk1...独立相册已上线，真实相册添加尚待用户验收；不为本轮nav任务重新调查相册SQL/邮件/R2。最后rootHANDOFF仅本地更新，.idea不读删提交，前轮Downloads测试JSON已删除。
 
 ## [Codex-cloud-setup]
 

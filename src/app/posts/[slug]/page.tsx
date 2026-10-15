@@ -31,7 +31,7 @@ export default async function PostPage({ params }: Props) {
       <div className="article-breadcrumb">
         <Link href="/archive">
           <ArrowLeft size={15} />
-          回到小日记
+          返回记录
         </Link>
         <span>一页属于我们的记忆</span>
       </div>
@@ -74,7 +74,7 @@ export default async function PostPage({ params }: Props) {
         <section className="article-next" aria-labelledby="related-title">
           <div className="article-next-heading">
             <h2 id="related-title">再翻一页吧</h2>
-            <Link href="/archive">查看所有日记 ↗</Link>
+            <Link href="/archive">查看所有记录 ↗</Link>
           </div>
           <div className="article-related">
             {related.map((item) => (

@@ -94,7 +94,7 @@ export function PostList() {
       <div className="admin-list-actions">
         <Link href="/admin/posts/new" className="admin-button primary">
           <Plus size={16} />
-          写一篇日记
+          写一篇文字
         </Link>
         <div className="admin-actions">
           <button
@@ -139,7 +139,7 @@ export function PostList() {
             type="search"
             value={search}
             maxLength={100}
-            placeholder="搜索日记标题"
+            placeholder="搜索文章标题"
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>

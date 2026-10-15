@@ -1342,3 +1342,13 @@ select:focus-visible {
 
 .album-order-note { text-align: center; font-size: 12px; color: var(--muted); margin: 18px 0; }
 .album-order-note a { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Keep content-specific management links beside their own section heading. */
+.page-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-manage-link { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; white-space: nowrap; }
+.section-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px 20px; }
+.section-actions .text-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+@media (max-width: 600px) {
+  .journal .section-intro { gap: 12px; flex-wrap: wrap; }
+  .section-actions { justify-content: flex-start; gap: 12px 18px; }
+}

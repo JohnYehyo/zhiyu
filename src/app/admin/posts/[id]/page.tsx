@@ -10,8 +10,8 @@ export default async function EditPostPage({
 }) {
   const { id } = await params;
   return (
-    <AdminGuard>
-      <AdminShell title="编辑日记">
+    <AdminGuard returnTo={`/admin/posts/${id}`}>
+      <AdminShell title="编辑文字">
         <EditLoader id={id} />
       </AdminShell>
     </AdminGuard>

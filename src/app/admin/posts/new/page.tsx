@@ -6,8 +6,8 @@ import { defaultSlug } from "@/lib/admin/content";
 export const dynamic = "force-dynamic";
 export default function NewPostPage() {
   return (
-    <AdminGuard>
-      <AdminShell title="写一篇日记">
+    <AdminGuard returnTo="/admin/posts/new">
+      <AdminShell title="写一篇文字">
         <PostEditor
           initialDraft={{
             title: "",

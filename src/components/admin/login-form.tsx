@@ -1,11 +1,12 @@
 "use client";
 
+import { adminDestination } from "@/lib/auth/admin-destination";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { adminRequest } from "@/lib/admin/api";
 
-export function LoginForm() {
+export function LoginForm({ returnTo = "/admin" }: { returnTo?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +30,7 @@ export function LoginForm() {
           );
           if (result.redirectTo !== "/admin")
             throw new Error("登录结果尚未确认，请重试。");
-          router.replace("/admin");
+          router.replace(adminDestination(returnTo));
           router.refresh();
         } catch (cause) {
           setError(

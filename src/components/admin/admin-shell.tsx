@@ -6,24 +6,24 @@ export function AdminShell({
   children,
   title,
   back = "/admin",
+  backLabel,
+  icon,
 }: {
   children: React.ReactNode;
   title: string;
   back?: string;
+  backLabel?: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <main id="main" className="admin-shell">
       <div className="admin-heading">
         <Link href={back} className="admin-back">
           <ArrowLeft size={16} />
-          {back === "/"
-            ? "返回日记"
-            : back === "/admin/login"
-              ? "返回登录"
-              : "全部稿件"}
+          {backLabel ?? (back === "/" ? "返回首页" : back === "/admin/login" ? "返回登录" : "全部文章")}
         </Link>
         <h1>
-          <PenLine size={20} />
+          {icon ?? <PenLine size={20} />}
           {title}
         </h1>
       </div>
