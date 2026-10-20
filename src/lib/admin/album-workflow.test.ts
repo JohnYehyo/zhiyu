@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ApiError, type PendingUpload } from "./api";
 import type { AlbumPhoto } from "../album-types";
 import type { MediaRecord } from "../types";
@@ -92,4 +92,67 @@ it("publishing captures the latest local fields with the selected revision and n
   const payload = albumUpdatePayload(photo, draft, true);
   draft.caption = "edited after request";
   expect(payload).toEqual({ revision: 2, caption: "今天的公园", alt: "草地旁的花", date: "2026-10-14", published: true });
+});
+
+it("retains the file after an incomplete PUT and retries PUT only after confirming absence", async () => {
+  const file = new File(["photo"], "image.jpg", { type: "image/jpeg" });
+  const calls: string[] = [];
+  let uploadFails = true;
+  let confirmCount = 0;
+  const transport: AlbumUploadTransport = {
+    async sign() { calls.push("sign"); return pending; },
+    async put(actualFile, actualPending) {
+      calls.push("put"); expect(actualFile).toBe(file); expect(actualPending.media.id).toBe("media-1");
+      if (uploadFails) throw new Error("offline");
+    },
+    async confirm() { calls.push("confirm"); if (confirmCount++ === 0) throw new ApiError("not uploaded", 409, "UPLOAD_INCOMPLETE"); return ready; },
+    async create() { calls.push("create"); return photo; },
+  };
+  const recovery = new AlbumAddition(transport, () => {});
+  await recovery.upload(file);
+  uploadFails = false;
+  expect(await recovery.retry()).toEqual(photo);
+  expect(calls).toEqual(["sign", "put", "confirm", "put", "confirm", "create"]);
+});
+
+it("does not reupload when the confirmation service is unavailable or returns a different media identity", async () => {
+  let puts = 0;
+  let wrongIdentity = false;
+  const recovery = new AlbumAddition({
+    async sign() { return pending; },
+    async put() { puts++; throw new Error("offline"); },
+    async confirm() { if (!wrongIdentity) throw new ApiError("unavailable", 503, "STORAGE_UNAVAILABLE"); return { ...ready, id: "another-file" }; },
+    async create() { throw new Error("must not create"); },
+  }, () => {});
+  await recovery.upload(new File(["photo"], "image.jpg", { type: "image/jpeg" }));
+  expect(await recovery.retry()).toBeNull();
+  wrongIdentity = true;
+  expect(await recovery.retry()).toBeNull();
+  expect(puts).toBe(1);
+  expect(recovery.state.pending?.media.id).toBe("media-1");
+});
+
+it("safely replaces an expired signature only after confirming that the old object is absent", async () => {
+  vi.useFakeTimers();
+  try {
+    const calls: string[] = [];
+    let signs = 0;
+    const recovery = new AlbumAddition({
+      async sign() { calls.push("sign"); signs++; return { ...pending, media: { ...pending.media, id: `media-${signs}` } }; },
+      async put(_file, current) { calls.push(`put:${current.media.id}`); if (signs === 1) throw new Error("offline"); },
+      async confirm(id) { calls.push(`confirm:${id}`); if (id === "media-1") throw new ApiError("missing", 409, "UPLOAD_INCOMPLETE"); return { ...ready, id }; },
+      async create(input) { calls.push(`create:${input.mediaId}`); return photo; },
+    }, () => {});
+    await recovery.upload(new File(["photo"], "image.jpg", { type: "image/jpeg" }));
+    vi.advanceTimersByTime(301_000);
+    expect(await recovery.retry()).toEqual(photo);
+    expect(calls).toEqual(["sign", "put:media-1", "confirm:media-1", "sign", "put:media-2", "confirm:media-2", "create:media-2"]);
+  } finally { vi.useRealTimers(); }
+});
+
+it("captures collection on create and publish without changing published state implicitly", async () => {
+  const { workflow, calls } = setup();
+  await workflow.select(ready, "collection-a");
+  expect(calls.add).toEqual([{ mediaId: "media-1", caption: "", alt: "", date: "", collectionId: "collection-a" }]);
+  expect(albumUpdatePayload(photo, { caption: "", alt: "", date: "", collectionId: null }, true)).toMatchObject({ collectionId: null, published: true });
 });

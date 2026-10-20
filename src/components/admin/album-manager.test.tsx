@@ -12,3 +12,12 @@ it("offers independent image upload or material reuse and waits for private albu
   expect(html).not.toContain('<img');
   expect(html).not.toContain("公开照片");
 });
+
+it("supports multiple image files, collection filtering and an explicit private upload target", () => {
+  const html = renderToStaticMarkup(<AlbumManager />);
+  expect(html).toContain('multiple=""');
+  expect(html).toContain("所有相片");
+  expect(html).toContain("未分组");
+  expect(html).toContain("新建相册集");
+  expect(html).toContain("上传至");
+});

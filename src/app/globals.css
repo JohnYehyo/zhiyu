@@ -1352,3 +1352,32 @@ select:focus-visible {
   .journal .section-intro { gap: 12px; flex-wrap: wrap; }
   .section-actions { justify-content: flex-start; gap: 12px 18px; }
 }
+
+/* Albums reuse the quiet paper-and-photograph language of the gallery. */
+.album-heading-actions { display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+.album-view-switch { display:flex; gap:2px; border:1px solid var(--line); padding:3px; }
+.album-view-switch a { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; font-size:12px; color:var(--muted); white-space:nowrap; }
+.album-view-switch a[aria-current="page"] { color:var(--ink); background:var(--mint); }
+.album-count { color:var(--muted); font-size:12px; margin:0 0 24px; }
+.album-collections { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:32px 28px; padding-top:8px; }
+.album-collection { min-width:0; display:block; }
+.album-collection-cover { background:#fffdf5; padding:10px; box-shadow:0 2px 6px rgba(53,76,67,.08); aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; }
+.album-collection-cover img { display:block; width:100%; height:100%; object-fit:cover; min-height:0; }
+.album-collection-caption { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:14px 0 0; }
+.album-collection h2 { font-size:20px; display:flex; align-items:center; gap:8px; margin:0; min-width:0; overflow-wrap:anywhere; }
+.album-collection-caption span { font-size:11px; color:var(--muted); white-space:nowrap; }
+.album-collection>p { font-size:13px; color:var(--muted); line-height:1.8; margin:8px 0 0; overflow-wrap:anywhere; white-space:pre-line; }
+.album-collection-heading { margin:0 0 30px; }
+.album-collection-heading .text-link { display:inline-flex; align-items:center; gap:6px; font-size:12px; }
+.album-collection-heading h2 { font-size:30px; margin:18px 0 8px; overflow-wrap:anywhere; }
+.album-collection-heading p { font-size:14px; color:var(--muted); white-space:pre-line; overflow-wrap:anywhere; }
+@media(max-width:1000px) { .album-collections { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  .album-heading-actions { width:100%; justify-content:space-between; gap:12px; }
+  .album-collections { gap:28px 16px; }
+  .album-collection-cover { padding:7px; }
+  .album-collection-caption { flex-wrap:wrap; gap:4px; }
+  .album-collection h2 { font-size:18px; }
+  .album-collection-heading h2 { font-size:25px; }
+}
+@media(max-width:359px) { .album-collections { grid-template-columns:1fr; } }

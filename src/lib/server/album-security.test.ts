@@ -26,8 +26,19 @@ it("rejects untrusted keys, oversized metadata, malformed identity and unsafe re
   expect(() => validateAlbumPatch({ ...draft, revision: 1, published: true, mediaId })).toThrow();
 });
 it("parses only unique bounded integer pagination values", () => {
-  expect(parseAlbumQuery(new URLSearchParams())).toEqual({ page: 1, pageSize: 20 });
+  expect(parseAlbumQuery(new URLSearchParams())).toEqual({ page: 1, pageSize: 15 });
   expect(parseAlbumQuery(new URLSearchParams("page=10000&pageSize=100"))).toEqual({ page: 10000, pageSize: 100 });
   for (const query of ["page=0", "page=-1", "page=10001", "page=1.5", "page=01", "page=1&page=2", "pageSize=101", "pageSize=0", "owner=x", "page=Infinity"])
     expect(() => parseAlbumQuery(new URLSearchParams(query))).toThrow();
+});
+
+it("accepts explicit collection moves and validates collection filters", () => {
+  expect(validateAlbumCreate({ mediaId, ...draft, collectionId: mediaId }).collectionId).toBe(mediaId);
+  expect(validateAlbumPatch({ ...draft, revision: 1, published: false, collectionId: null }).collectionId).toBeNull();
+  expect(parseAlbumQuery(new URLSearchParams(`collectionId=${mediaId}`))).toEqual({ page: 1, pageSize: 15, collectionId: mediaId });
+  expect(parseAlbumQuery(new URLSearchParams("collectionId=unassigned")).collectionId).toBe("unassigned");
+  for (const value of ["", "fake", "all"])
+    expect(() => parseAlbumQuery(new URLSearchParams(`collectionId=${value}`))).toThrow();
+  expect(() => parseAlbumQuery(new URLSearchParams(`collectionId=${mediaId}&collectionId=${mediaId}`))).toThrow();
+  expect(() => validateAlbumCreate({ mediaId, ...draft, collectionId: "fake" })).toThrow();
 });

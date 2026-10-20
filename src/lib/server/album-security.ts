@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AlbumDraft } from "../album-types";
 import { ServiceError } from "./errors";
 
-export interface AlbumQuery { page: number; pageSize: number }
+export interface AlbumQuery { page: number; pageSize: number; collectionId?: string }
 export interface AlbumCreate extends AlbumDraft { mediaId: string }
 export interface AlbumPatch extends AlbumDraft { revision: number; published: boolean }
 
@@ -16,6 +16,7 @@ function calendarDate(value: string): boolean {
   return day <= days[month - 1];
 }
 const fields = {
+  collectionId: z.string().uuid().nullable().optional(),
   caption: z.string().max(1000),
   alt: z.string().max(500),
   date: z.string().refine(calendarDate),
@@ -42,7 +43,7 @@ export function validateAlbumPatch(input: unknown): AlbumPatch {
 export function parseAlbumQuery(params: URLSearchParams): AlbumQuery {
   const invalid = (): never => { throw new ServiceError(400, "INVALID_QUERY", "相册分页条件无效。"); };
   for (const key of params.keys())
-    if (!["page", "pageSize"].includes(key) || params.getAll(key).length !== 1) invalid();
+    if (!["page", "pageSize", "collectionId"].includes(key) || params.getAll(key).length !== 1) invalid();
   const number = (key: string, fallback: number, max: number) => {
     const raw = params.get(key);
     if (raw === null) return fallback;
@@ -51,5 +52,7 @@ export function parseAlbumQuery(params: URLSearchParams): AlbumQuery {
     if (!Number.isSafeInteger(value) || value > max) invalid();
     return value;
   };
-  return { page: number("page", 1, 10000), pageSize: number("pageSize", 20, 100) };
+  const collectionId = params.get("collectionId");
+  if (collectionId !== null && collectionId !== "unassigned" && !z.string().uuid().safeParse(collectionId).success) invalid();
+  return { page: number("page", 1, 10000), pageSize: number("pageSize", 15, 100), ...(collectionId !== null ? { collectionId: collectionId.toLowerCase() } : {}) };
 }

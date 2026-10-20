@@ -5,7 +5,7 @@ vi.mock("server-only",()=>({}));
 vi.mock("next/navigation",()=>({usePathname:()=>"/archive",useRouter:()=>({replace:vi.fn(),refresh:vi.fn()})}));
 vi.mock("@/lib/posts",()=>({getPublishedPosts:async()=>[]}));
 const album = vi.hoisted(()=>({missing:false}));
-vi.mock("@/lib/album",()=>({AlbumReadError:class extends Error {constructor(public code:string,message:string){super(message)}},getAlbumPage:async()=>{if(album.missing){const {AlbumReadError}=await import("@/lib/album");throw new AlbumReadError("ALBUM_MIGRATION_REQUIRED","missing");}return {photos:[],pagination:{page:1,pageSize:24,total:0}};}}));
+vi.mock("@/lib/album",()=>({AlbumReadError:class extends Error {constructor(public code:string,message:string){super(message)}},getAlbumCollections:async()=>{if(album.missing){const {AlbumReadError}=await import("@/lib/album");throw new AlbumReadError("ALBUM_MIGRATION_REQUIRED","missing");}return [];},getAlbumPage:async()=>{if(album.missing){const {AlbumReadError}=await import("@/lib/album");throw new AlbumReadError("ALBUM_MIGRATION_REQUIRED","missing");}return {photos:[],pagination:{page:1,pageSize:24,total:0}};}}));
 vi.mock("./admin/guard",()=>({AdminGuard:({children}:{children:React.ReactNode})=><>{children}</>}));
 vi.mock("./admin/post-list",()=>({PostList:()=> <div>article-list</div>}));
 vi.mock("./admin/album-manager",()=>({AlbumManager:()=> <div>album-manager</div>}));

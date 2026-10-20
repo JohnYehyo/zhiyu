@@ -8,7 +8,7 @@ import { mediaUrl } from "@/lib/media";
 import { formatDate } from "@/lib/reading";
 
 type PhotoPage = {photos:PublicAlbumPhoto[];pagination:PageInfo};
-export function AlbumGallery({initial}: {initial:PhotoPage}) {
+export function AlbumGallery({initial, collectionId}: {initial:PhotoPage;collectionId?:string}) {
   const [photos,setPhotos]=useState(initial.photos);
   const [pagination,setPagination]=useState(initial.pagination);
   const [selected,setSelected]=useState<number|null>(null);
@@ -39,7 +39,7 @@ export function AlbumGallery({initial}: {initial:PhotoPage}) {
     busy.current=true;setLoading(true);setError("");
     const controller=new AbortController();request.current=controller;
     try {
-      const response=await fetch(`/api/album?page=${pagination.page+1}&pageSize=${pagination.pageSize}`,{cache:"no-store",signal:controller.signal});
+      const response=await fetch(`/api/album?page=${pagination.page+1}&pageSize=${pagination.pageSize}${collectionId?`&collectionId=${encodeURIComponent(collectionId)}`:""}`,{cache:"no-store",signal:controller.signal});
       if(!response.ok)throw new Error("照片暂时无法加载，请重试。");
       const next=await response.json() as PhotoPage;
       const ids=new Set(photos.map(item=>item.id));
@@ -65,7 +65,7 @@ export function AlbumGallery({initial}: {initial:PhotoPage}) {
       <button type="button" disabled={loading} onClick={()=>void more()}>{loading?"正在加载照片…":"加载更多照片"}</button>
       {error&&<p role="alert">{error}</p>}
     </div>}
-    {orderChanged&&<p className="album-order-note">照片列表已更新。<a href="/album">刷新相册</a>可查看最新照片。</p>}
+    {orderChanged&&<p className="album-order-note">照片列表已更新。<a href={collectionId?`/album?collection=${encodeURIComponent(collectionId)}`:"/album?view=photos"}>刷新相册</a>可查看最新照片。</p>}
     <dialog ref={dialog} className="album-viewer" aria-labelledby="album-photo-title" onClose={()=>setSelected(null)} onCancel={()=>setSelected(null)}
       onClick={event=>{if(event.target===event.currentTarget){const bounds=event.currentTarget.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)setSelected(null);}}}
       onKeyDown={event=>{if(event.key==="ArrowLeft"&&selected!==null&&selected>0){event.preventDefault();setSelected(selected-1);}if(event.key==="ArrowRight"&&selected!==null&&selected<count-1){event.preventDefault();setSelected(selected+1);}}}>

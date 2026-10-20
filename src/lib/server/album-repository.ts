@@ -8,6 +8,7 @@ import { ServiceError } from "./errors";
 interface AlbumRow {
   id: string;
   media_id: string;
+  collection_id: string | null;
   storage_key: string;
   caption: string;
   alt: string;
@@ -17,11 +18,12 @@ interface AlbumRow {
   created_at: string;
   updated_at: string;
 }
-const columns = "id,media_id,storage_key,caption,alt,taken_on,revision,published,created_at,updated_at";
+const columns = "id,media_id,collection_id,storage_key,caption,alt,taken_on,revision,published,created_at,updated_at";
 function photo(row: AlbumRow): AlbumPhoto {
   return {
     id: row.id,
     mediaId: row.media_id,
+    collectionId: row.collection_id,
     storageKey: row.storage_key,
     caption: row.caption,
     alt: row.alt,
@@ -35,6 +37,10 @@ function photo(row: AlbumRow): AlbumPhoto {
 export function albumDatabaseError(error: { message: string; code?: string }): never {
   if (["42P01", "42703", "42883", "PGRST202", "PGRST204", "PGRST205"].includes(error.code ?? "") || error.message.includes("ALBUM_MEDIA_REQUIRED"))
     throw new ServiceError(503, "ALBUM_MIGRATION_REQUIRED", "相册尚未准备好，请执行相册迁移 SQL。");
+  if (error.message.includes("COLLECTION_CONFLICT"))
+    throw new ServiceError(409, "COLLECTION_CONFLICT", "相册集已在其他页面修改，请刷新后重试。");
+  if (error.message.includes("COLLECTION_NOT_FOUND"))
+    throw new ServiceError(404, "COLLECTION_NOT_FOUND", "相册集不存在，请刷新后重试。");
   if (error.message.includes("ALBUM_CONFLICT"))
     throw new ServiceError(409, "ALBUM_CONFLICT", "照片已在其他页面修改，请刷新后重试。");
   if (error.message.includes("ALBUM_DUPLICATE") || error.code === "23505")
@@ -47,10 +53,13 @@ export function albumDatabaseError(error: { message: string; code?: string }): n
 }
 export async function listAlbumPage(owner: string, options: AlbumQuery): Promise<{ photos: AlbumPhoto[]; pagination: PageInfo }> {
   const start = (options.page - 1) * options.pageSize;
-  const { data, error, count } = await getServiceSupabase()
+  let query = getServiceSupabase()
     .from("album_photos")
     .select(columns, { count: "exact" })
-    .eq("owner_id", owner)
+    .eq("owner_id", owner);
+  if (options.collectionId === "unassigned") query = query.is("collection_id", null);
+  else if (options.collectionId) query = query.eq("collection_id", options.collectionId);
+  const { data, error, count } = await query
     .order("updated_at", { ascending: false })
     .order("id")
     .range(start, start + options.pageSize - 1);
@@ -59,7 +68,9 @@ export async function listAlbumPage(owner: string, options: AlbumQuery): Promise
   if (error) albumDatabaseError(error);
   if (!Array.isArray(data) || count === null)
     albumDatabaseError({ message: "Invalid album page response" });
-  return { photos: (data as AlbumRow[]).map(photo), pagination: { ...options, total: count } };
+  const lastPage = Math.max(1, Math.ceil(count / options.pageSize));
+  if (options.page > lastPage) return listAlbumPage(owner, { ...options, page: lastPage });
+  return { photos: (data as AlbumRow[]).map(photo), pagination: { page: options.page, pageSize: options.pageSize, total: count } };
 }
 export async function createAlbumPhoto(owner: string, draft: AlbumCreate): Promise<AlbumPhoto> {
   const { data, error } = await getServiceSupabase().rpc("create_album_photo", {
@@ -68,6 +79,7 @@ export async function createAlbumPhoto(owner: string, draft: AlbumCreate): Promi
     p_caption: draft.caption,
     p_alt: draft.alt,
     p_taken_on: draft.date,
+    ...(draft.collectionId !== undefined ? { p_collection_id: draft.collectionId } : {}),
   });
   if (error) albumDatabaseError(error);
   if (!data || typeof data !== "object") albumDatabaseError({ message: "Invalid album create response" });
@@ -81,6 +93,7 @@ export async function updateAlbumPhoto(owner: string, id: string, draft: AlbumPa
     p_caption: draft.caption,
     p_alt: draft.alt,
     p_taken_on: draft.date,
+    ...(draft.collectionId !== undefined ? { p_collection_id: draft.collectionId } : {}),
     p_published: draft.published,
   });
   if (error) albumDatabaseError(error);

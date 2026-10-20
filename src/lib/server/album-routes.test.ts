@@ -33,15 +33,23 @@ vi.mock("../supabase/service", () => ({ getServiceSupabase: () => createClient("
     try {
       if (url.pathname === "/rest/v1/album_photos") {
         const owner = url.searchParams.get("owner_id")?.replace(/^eq\./, "");
-        const rows = (await state.db!.query("select * from public.album_photos where owner_id=$1 order by updated_at desc,id asc limit $2 offset $3", [owner, Number(url.searchParams.get("limit")), Number(url.searchParams.get("offset"))])).rows;
-        const total = (await state.db!.query<{ total: number }>("select count(*)::int as total from public.album_photos where owner_id=$1", [owner])).rows[0].total;
+        const filter = url.searchParams.get("collection_id");
+        const where = filter === "is.null" ? " and collection_id is null" : filter?.startsWith("eq.") ? " and collection_id=$4" : "";
+        const values = [owner, Number(url.searchParams.get("limit")), Number(url.searchParams.get("offset")), ...(filter?.startsWith("eq.") ? [filter.slice(3)] : [])];
+        const rows = (await state.db!.query(`select * from public.album_photos where owner_id=$1${where} order by updated_at desc,id asc limit $2 offset $3`, values)).rows;
+        const total = (await state.db!.query<{ total: number }>(`select count(*)::int as total from (select id from public.album_photos where owner_id=$1${where} limit $2 offset $3) p`, [owner, 100000, 0, ...(filter?.startsWith("eq.") ? [filter.slice(3)] : [])])).rows[0].total;
         return response(rows, 200, total);
       }
       const args = body as Record<string, unknown>;
+      const membership = args.p_collection_id !== undefined ? [args.p_collection_id] : [];
       let result;
-      if (url.pathname.endsWith("/create_album_photo")) result = await state.db!.query<{ result: unknown }>("select public.create_album_photo($1,$2,$3,$4,$5) as result", [args.p_owner, args.p_media_id, args.p_caption, args.p_alt, args.p_taken_on]);
-      else if (url.pathname.endsWith("/update_album_photo")) result = await state.db!.query<{ result: unknown }>("select public.update_album_photo($1,$2,$3,$4,$5,$6,$7) as result", [args.p_id, args.p_owner, args.p_revision, args.p_caption, args.p_alt, args.p_taken_on, args.p_published]);
+      if (url.pathname.endsWith("/create_album_photo")) result = await state.db!.query<{ result: unknown }>(`select public.create_album_photo($1,$2,$3,$4,$5${membership.length ? ",$6" : ""}) as result`, [args.p_owner, args.p_media_id, args.p_caption, args.p_alt, args.p_taken_on,...membership]);
+      else if (url.pathname.endsWith("/update_album_photo")) result = await state.db!.query<{ result: unknown }>(`select public.update_album_photo($1,$2,$3,$4,$5,$6,$7${membership.length ? ",$8" : ""}) as result`, [args.p_id, args.p_owner, args.p_revision, args.p_caption, args.p_alt, args.p_taken_on, args.p_published,...membership]);
       else if (url.pathname.endsWith("/remove_album_photo")) result = await state.db!.query<{ result: unknown }>("select public.remove_album_photo($1,$2,$3) as result", [args.p_id, args.p_owner, args.p_revision]);
+      else if (url.pathname.endsWith("/list_album_collections")) result = await state.db!.query<{result:unknown}>("select public.list_album_collections($1) as result",[args.p_owner]);
+      else if (url.pathname.endsWith("/create_album_collection")) result = await state.db!.query<{result:unknown}>("select public.create_album_collection($1,$2,$3) as result",[args.p_owner,args.p_title,args.p_description]);
+      else if (url.pathname.endsWith("/update_album_collection")) result = await state.db!.query<{result:unknown}>("select public.update_album_collection($1,$2,$3,$4,$5) as result",[args.p_id,args.p_owner,args.p_revision,args.p_title,args.p_description]);
+      else if (url.pathname.endsWith("/remove_album_collection")) result = await state.db!.query<{result:unknown}>("select public.remove_album_collection($1,$2,$3) as result",[args.p_id,args.p_owner,args.p_revision]);
       else throw Error("Unexpected album endpoint");
       return response(result.rows[0].result);
     } catch (error) { return response({ message: (error as Error).message, code: (error as { code?: string }).code ?? "P0001" }, 400); }
@@ -50,6 +58,8 @@ vi.mock("../supabase/service", () => ({ getServiceSupabase: () => createClient("
 
 import { GET, POST } from "@/app/api/admin/album/route";
 import { PATCH, DELETE } from "@/app/api/admin/album/[id]/route";
+import { GET as collectionsGET, POST as collectionsPOST } from "@/app/api/admin/album/collections/route";
+import { PATCH as collectionsPATCH, DELETE as collectionsDELETE } from "@/app/api/admin/album/collections/[id]/route";
 import { listAlbumPage } from "./album-repository";
 const owner = "11111111-1111-4111-8111-111111111111";
 const foreign = "22222222-2222-4222-8222-222222222222";
@@ -63,6 +73,7 @@ beforeAll(async () => {
   await state.db.exec("create role anon; create role authenticated; create role service_role bypassrls; grant usage on schema public to anon,authenticated,service_role;");
   await state.db.exec(await readFile(new URL("../../../supabase/migrations/202610120001_initial.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album.sql", import.meta.url), "utf8"));
+  await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-collections.sql", import.meta.url), "utf8"));
 }, 30000);
 afterAll(async () => { await state.db?.close(); });
 beforeEach(async () => {
@@ -76,7 +87,7 @@ beforeEach(async () => {
   state.invalidRange = false;
   state.requests = [];
   state.revalidate.mockClear();
-  await state.db!.exec("reset role; truncate public.published_album_photos,public.album_photos,public.media;");
+  await state.db!.exec("reset role; truncate public.published_album_photos,public.album_photos,public.album_collections,public.media;");
   await state.db!.query("insert into public.media(id,owner_id,storage_key,mime_type,size,status) values($1,$2,$3,'image/jpeg',100,'ready')", [mediaId, owner, `blob/${owner}/${mediaId}.jpg`]);
   await state.db!.exec("set role service_role");
 });
@@ -88,7 +99,7 @@ it("runs add, publish/save, private list and removal against real SQL without le
   expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   const { photo } = await response.json();
   expect(photo).toMatchObject({ mediaId, ...metadata, revision: 1, published: false });
-  expect(Object.keys(photo).sort()).toEqual(["alt", "caption", "createdAt", "date", "id", "mediaId", "published", "revision", "storageKey", "updatedAt"]);
+  expect(Object.keys(photo).sort()).toEqual(["alt", "caption", "collectionId", "createdAt", "date", "id", "mediaId", "published", "revision", "storageKey", "updatedAt"]);
   expect(state.revalidate).not.toHaveBeenCalled();
   const saved = await PATCH(request("PATCH", { ...metadata, caption: "公开图注", revision: 1, published: true }), context(photo.id));
   expect(saved.status).toBe(200);
@@ -160,4 +171,53 @@ it("withdrawal immediately removes the public snapshot and invalidates the album
   expect((await response.json()).photo).toMatchObject({ revision: 3, published: false });
   expect((await state.db!.query("select id from public.published_album_photos")).rows).toEqual([]);
   expect(state.revalidate).toHaveBeenCalledWith("/album");
+});
+
+it("manages collections with private counts, filters, rename, versioned deletion and safe response fields", async () => {
+  const created = await collectionsPOST(request("POST",{title:"旅行",description:"路上"}));
+  const {collection} = await created.json();
+  expect(collection).toMatchObject({title:"旅行",description:"路上",revision:1,photoCount:0});
+  expect(Object.keys(collection).sort()).toEqual(["createdAt","description","id","photoCount","revision","title","updatedAt"]);
+  const {photo} = await (await POST(request("POST",{mediaId,...metadata,collectionId:collection.id}))).json();
+  expect(photo.collectionId).toBe(collection.id);
+  expect(await (await collectionsGET(new Request("http://localhost/api/admin/album/collections"))).json()).toMatchObject({collections:[{id:collection.id,photoCount:1}]});
+  const filtered = await GET(new Request(`http://localhost/api/admin/album?collectionId=${collection.id}`));
+  expect(await filtered.json()).toMatchObject({photos:[{id:photo.id}],pagination:{page:1,pageSize:15,total:1}});
+  const unassigned = await GET(new Request("http://localhost/api/admin/album?collectionId=unassigned"));
+  expect(await unassigned.json()).toMatchObject({photos:[],pagination:{total:0}});
+  await PATCH(request("PATCH",{...metadata,revision:1,published:true}),context(photo.id));
+  const renamed = await collectionsPATCH(request("PATCH",{title:"夏日",description:"新说明",revision:1}),context(collection.id));
+  expect(await renamed.json()).toMatchObject({collection:{title:"夏日",revision:2}});
+  expect((await state.db!.query("select title from public.published_album_collections")).rows).toEqual([{title:"夏日"}]);
+  const deleteRequest = (revision:number) => new Request(`http://localhost/api/admin/album/collections/${collection.id}?revision=${revision}`,{method:"DELETE",headers:{Origin:"http://localhost"}});
+  expect((await collectionsDELETE(deleteRequest(1),context(collection.id))).status).toBe(409);
+  expect(await (await collectionsDELETE(deleteRequest(2),context(collection.id))).json()).toEqual({deletedId:collection.id});
+  expect((await PATCH(request("PATCH",{...metadata,revision:2,published:false}),context(photo.id))).status).toBe(409);
+  expect((await state.db!.query("select collection_id,published,revision::int as revision from public.album_photos")).rows).toEqual([{collection_id:null,published:true,revision:3}]);
+  expect(state.revalidate).toHaveBeenCalledWith("/album");
+});
+it("rejects collection auth, origin, payload and revision faults before RPC", async () => {
+  state.user = null;
+  expect((await collectionsGET(new Request("http://localhost/api/admin/album/collections"))).status).toBe(401);
+  state.user = {id:owner};
+  expect((await collectionsPOST(request("POST",{title:"a",description:""},"https://foreign.example"))).status).toBe(403);
+  expect((await collectionsPOST(request("POST",{title:"a",description:"",ownerId:foreign}))).status).toBe(400);
+  expect((await collectionsPATCH(request("PATCH",{title:"a",description:"",revision:0}),context(mediaId))).status).toBe(400);
+  expect((await collectionsDELETE(new Request("http://localhost/api/admin/album/collections/id?revision=1&revision=2",{method:"DELETE",headers:{Origin:"http://localhost"}}),context(mediaId))).status).toBe(400);
+  expect(state.requests).toEqual([]);
+});
+it("returns safe errors when a forged collection is used to create or move a photo", async () => {
+  const {collection} = (await state.db!.query<{collection:{id:string}}>("select public.create_album_collection($1,'foreign','') as collection",[foreign])).rows[0];
+  const rejected = await POST(request("POST",{mediaId,...metadata,collectionId:collection.id}));
+  expect(rejected.status).toBe(404); expect(await rejected.json()).toMatchObject({code:"COLLECTION_NOT_FOUND"});
+  const {photo} = await (await add()).json();
+  const moved = await PATCH(request("PATCH",{...metadata,revision:1,published:false,collectionId:collection.id}),context(photo.id));
+  expect(moved.status).toBe(404);
+  expect((await state.db!.query("select collection_id,revision::int as revision from public.album_photos")).rows).toEqual([{collection_id:null,revision:1}]);
+});
+
+it("clamps a now-empty last filtered page after photos move to another collection",async()=>{
+ const result=await add(); const {photo}=await result.json();
+ const page=await listAlbumPage(owner,{page:2,pageSize:15,collectionId:"unassigned"});
+ expect(page.pagination).toEqual({page:1,pageSize:15,total:1});expect(page.photos.map(p=>p.id)).toEqual([photo.id]);
 });
