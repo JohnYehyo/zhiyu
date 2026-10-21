@@ -22,6 +22,7 @@ export interface PublicAlbumPhoto extends AlbumDraft {
 
 export interface AlbumCollection {
   id: string;
+  coverPhotoId?: string | null;
   title: string;
   description: string;
   revision: number;

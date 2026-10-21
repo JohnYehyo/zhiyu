@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { parseCollectionDeleteQuery, validateAlbumCollectionCreate, validateAlbumCollectionPatch } from "./album-collection-security";
+import { parseCollectionDeleteQuery, validateAlbumCollectionCreate, validateAlbumCollectionPatch, validateAlbumCollectionCover } from "./album-collection-security";
 it("validates bounded collection metadata, strict keys and exact revisions", () => {
   expect(validateAlbumCollectionCreate({title:"  夏日  ",description:""})).toEqual({title:"夏日",description:""});
   for (const input of [{title:" ",description:""},{title:"a".repeat(101),description:""},{title:"a",description:"a".repeat(1001)},{title:"a",description:"",ownerId:"fake"}])
@@ -12,4 +12,11 @@ it("accepts only one safe positive revision query", () => {
   expect(parseCollectionDeleteQuery(new URLSearchParams("revision=2"))).toBe(2);
   for (const input of ["","revision=0","revision=01","revision=1&revision=2","revision=1&owner=x","revision=9007199254740992"])
     expect(() => parseCollectionDeleteQuery(new URLSearchParams(input))).toThrow();
+});
+it("requires an explicit cover UUID or null and a safe revision without extra fields", () => {
+  const photoId = "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA";
+  expect(validateAlbumCollectionCover({revision:1,photoId})).toEqual({revision:1,photoId:photoId.toLowerCase()});
+  expect(validateAlbumCollectionCover({revision:2,photoId:null})).toEqual({revision:2,photoId:null});
+  for (const input of [{revision:1},{revision:1,photoId:"bad"},{revision:0,photoId:null},{revision:"1",photoId:null},{revision:Number.MAX_SAFE_INTEGER+1,photoId:null},{revision:1,photoId:null,published:true}])
+    expect(() => validateAlbumCollectionCover(input)).toThrow();
 });

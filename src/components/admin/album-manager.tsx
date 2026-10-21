@@ -13,6 +13,7 @@ import { mediaUrl } from "@/lib/media";
 import { MediaPicker } from "./media-picker";
 import { Pagination } from "./pagination";
 import { AlbumCollections } from "./album-collections";
+import { AlbumPhotoCover } from "./album-photo-cover";
 import { AlbumUploadQueue } from "./album-upload-queue";
 import "./album-manager.css";
 
@@ -38,13 +39,14 @@ export function AlbumManager() {
   const [uploadCollection, setUploadCollection] = useState("");
   const [collectionDirty, setCollectionDirty] = useState(false);
   const [collectionBusy, setCollectionBusy] = useState(false);
+  const [collectionEditing,setCollectionEditing]=useState(false);
   const [, updateBatch] = useState(0);
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; data?: AlbumResult; error?: string } | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [picker, setPicker] = useState(false);
   const [addition, setAddition] = useState<AlbumAdditionState>({ phase: "idle", percent: 0 });
-  const [action, setAction] = useState<"save" | "publish" | "remove" | null>(null);
+  const [action, setAction] = useState<"save" | "publish" | "remove" | "cover" | null>(null);
   const [actionError, setActionError] = useState("");
   const [conflict, setConflict] = useState(false);
   const [message, setMessage] = useState("");
@@ -173,6 +175,24 @@ export function AlbumManager() {
       if (mounted.current) setAction(null);
     }
   }
+  async function setCover(collection: AlbumCollection, photoId: string | null) {
+    if (mutation.current || busy || collectionEditing || (photoId !== null && dirty)) return;
+    mutation.current = true; setAction("cover"); setActionError(""); setMessage("");
+    try {
+      const response = await adminRequest<{collection:AlbumCollection}>(`/api/admin/album/collections/${collection.id}/cover`, "PATCH", {revision:collection.revision,photoId});
+      if (!mounted.current) return;
+      setCollections(current => current.map(item => item.id === response.collection.id ? response.collection : item));
+      setRefresh(value => value + 1);
+      setMessage(photoId === null ? "已恢复自动选择相册封面。" : "已设为相册封面，后续上传不会替换它。");
+    } catch (cause) {
+      if (!mounted.current) return;
+      setActionError(albumErrorMessage(cause));
+      setRefresh(value => value + 1);
+    } finally {
+      mutation.current = false;
+      if (mounted.current) setAction(null);
+    }
+  }
   async function remove() {
     if (!selection || mutation.current || conflict) return;
     if (!window.confirm("确定把这张照片移出相册吗？相册记录和公开展示将移除，图片素材及日记中的引用仍会保留。")) return;
@@ -199,7 +219,8 @@ export function AlbumManager() {
 
   return (
     <div className="admin-album-manager">
-      <AlbumCollections collections={collections} value={collectionFilter} disabled={busy} beforeChange={canLeaveSelection} onDirtyChange={setCollectionDirty} onBusyChange={setCollectionBusy}
+      <AlbumCollections collections={collections} value={collectionFilter} disabled={busy} beforeChange={canLeaveSelection} onDirtyChange={setCollectionDirty} onBusyChange={setCollectionBusy} onEditingChange={setCollectionEditing}
+        onResetCover={() => { const collection=collections.find(item=>item.id===collectionFilter); if(collection)void setCover(collection,null); }}
         onChange={(value) => { setCollectionFilter(value); if (value !== "all") setUploadCollection(value === "unassigned" ? "" : value); setPage(1); setSelection(null); setConflict(false); setActionError(""); }}
         onSaved={(collection) => { if (!collections.some((item) => item.id === collection.id)) { setCollectionFilter(collection.id); setUploadCollection(collection.id); setPage(1); setSelection(null); setConflict(false); setActionError(""); } setCollections((current) => [...current.filter((item) => item.id !== collection.id), collection]); setRefresh((value) => value + 1); setMessage("相册集已保存。"); }}
         onDeleted={(id) => { setCollections((current) => current.filter((item) => item.id !== id)); setCollectionFilter("unassigned"); setUploadCollection((value) => value === id ? "" : value); setPage(1); setSelection(null); setConflict(false); setActionError(""); setRefresh((value) => value + 1); setMessage("相册集已删除，其中照片已移回未分组，公开状态保持不变。"); }} />
@@ -234,7 +255,7 @@ export function AlbumManager() {
         <section className="admin-album-list" aria-label="相册照片">
           {loading ? <p className="admin-album-placeholder" role="status">正在读取相册…</p> : result?.error ? <div className="admin-error" role="alert"><p>{result.error}</p><button className="admin-button" onClick={() => setRefresh((value) => value + 1)}>重试读取</button></div> : data?.photos.length === 0 ? <p className="admin-empty">{collectionFilter === "all" ? "相册还没有照片。上传照片，或从已上传素材中添加一张。" : "这里还没有照片。可选择此相册集作为上传目标，或在照片信息中调整归属。"}</p> : <ul className="admin-album-grid">
             {data?.photos.map((photo) => <li key={photo.id}><button className="admin-album-photo" aria-pressed={selection?.photo.id === photo.id} aria-controls="album-photo-editor" disabled={busy} onClick={() => selectPhoto(photo)}>
-              <span className="admin-album-thumb">{mediaUrl(photo.storageKey) ? <img src={mediaUrl(photo.storageKey)} alt={photo.alt || "相册照片"} loading="lazy" /> : <Images size={24} />}</span>
+              <span className="admin-album-thumb">{mediaUrl(photo.storageKey) ? <img src={mediaUrl(photo.storageKey)} alt={photo.alt || "相册照片"} loading="lazy" /> : <Images size={24} />}{collections.some(item=>item.coverPhotoId===photo.id)&&<span className="admin-album-cover-badge">封面</span>}</span>
               <span className="admin-album-photo-caption">{photo.caption || "未填写图注"}</span><span className="admin-album-photo-meta">{photo.date || new Date(photo.createdAt).toLocaleDateString("zh-CN")} · {photo.published ? "已公开" : "未公开"}</span>
             </button></li>)}
           </ul>}
@@ -251,9 +272,14 @@ export function AlbumManager() {
               <label>照片日期<input type="date" value={selection.draft.date} onChange={(event) => setSelection({ ...selection, draft: { ...selection.draft, date: event.target.value } })} /></label>
             </fieldset>
             <p className="admin-hint">日期留空时按加入时间排序。{selection.photo.published ? "保存会同步更新公开相册。" : "保存后仍未公开。"}</p>
-            <div className="admin-album-edit-status" role="status">{busy ? (action === "remove" ? "正在移出…" : action ? "正在保存…" : "正在添加照片…") : dirty ? "有未保存的修改" : selection.photo.published ? "已保存 · 已公开" : "已保存 · 未公开"}</div>
+            <div className="admin-album-edit-status" role="status">{busy ? (action === "remove" ? "正在移出…" : action === "cover" ? "正在设置封面…" : action ? "正在保存…" : "正在添加照片…") : dirty ? "有未保存的修改" : selection.photo.published ? "已保存 · 已公开" : "已保存 · 未公开"}</div>
             <div className="admin-album-edit-actions"><button type="submit" className="admin-button" disabled={busy || !dirty || conflict}><Save size={14} />保存修改</button><button type="button" className="admin-button primary" disabled={busy || conflict} onClick={() => void save(!selection.photo.published, true)}>{selection.photo.published ? <EyeOff size={14} /> : <Eye size={14} />}{selection.photo.published ? "收起照片" : "公开照片"}</button></div>
             {dirty && <p className="admin-hint">公开或收起时，会一并保存上面的修改。</p>}
+            <AlbumPhotoCover photo={selection.photo} collection={collections.find(item=>item.id===selection.photo.collectionId)} busy={busy} dirty={dirty} collectionEditing={collectionEditing} onChoose={() => {
+              const collection=collections.find(item=>item.id===selection.photo.collectionId);
+              if(collection)void setCover(collection,selection.photo.id);
+            }}/>
+
             {conflict && <div className="admin-album-conflict"><p>服务器上的照片已变化，本地修改仍保留。重新选择前请先保留需要的文字。</p><button type="button" className="admin-button" disabled={busy} onClick={() => { if (canLeaveSelection()) { setSelection(null); setConflict(false); setActionError(""); setRefresh((value) => value + 1); } }}>放弃本地修改并刷新</button></div>}
             <button type="button" className="admin-button subtle admin-album-remove" disabled={busy || conflict} onClick={() => void remove()}><Trash2 size={14} />移出相册</button>
           </form>

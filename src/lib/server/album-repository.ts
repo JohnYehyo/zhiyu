@@ -41,6 +41,8 @@ export function albumDatabaseError(error: { message: string; code?: string }): n
     throw new ServiceError(409, "COLLECTION_CONFLICT", "相册集已在其他页面修改，请刷新后重试。");
   if (error.message.includes("COLLECTION_NOT_FOUND"))
     throw new ServiceError(404, "COLLECTION_NOT_FOUND", "相册集不存在，请刷新后重试。");
+  if (error.message.includes("ALBUM_COVER_INVALID"))
+    throw new ServiceError(409, "ALBUM_COVER_INVALID", "请选择此相册集中已公开且上传完成的照片作为封面。");
   if (error.message.includes("ALBUM_CONFLICT"))
     throw new ServiceError(409, "ALBUM_CONFLICT", "照片已在其他页面修改，请刷新后重试。");
   if (error.message.includes("ALBUM_DUPLICATE") || error.code === "23505")

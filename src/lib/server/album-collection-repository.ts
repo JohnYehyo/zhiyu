@@ -2,12 +2,12 @@ import "server-only";
 import type { AlbumCollection } from "../album-types";
 import { getServiceSupabase } from "../supabase/service";
 import { albumDatabaseError } from "./album-repository";
-import type { AlbumCollectionCreate, AlbumCollectionPatch } from "./album-collection-security";
+import type { AlbumCollectionCreate, AlbumCollectionPatch, AlbumCollectionCover } from "./album-collection-security";
 interface CollectionRow {
-  id: string; title: string; description: string; revision: number; photo_count: number; created_at: string; updated_at: string;
+  id: string; title: string; description: string; revision: number; photo_count: number; cover_photo_id?: string | null; created_at: string; updated_at: string;
 }
 function collection(row: CollectionRow): AlbumCollection {
-  return { id: row.id, title: row.title, description: row.description, revision: Number(row.revision), photoCount: Number(row.photo_count), createdAt: row.created_at, updatedAt: row.updated_at };
+  return { id: row.id, title: row.title, description: row.description, revision: Number(row.revision), photoCount: Number(row.photo_count), coverPhotoId: row.cover_photo_id ?? null, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 export async function listAlbumCollections(owner: string): Promise<AlbumCollection[]> {
   const { data, error } = await getServiceSupabase().rpc("list_album_collections", { p_owner: owner });
@@ -33,4 +33,10 @@ export async function removeAlbumCollection(owner: string, id: string, revision:
   if (error) albumDatabaseError(error);
   if (data !== canonicalId) albumDatabaseError({ message: "Invalid collection removal response" });
   return canonicalId;
+}
+export async function setAlbumCollectionCover(owner: string, id: string, draft: AlbumCollectionCover): Promise<AlbumCollection> {
+  const { data, error } = await getServiceSupabase().rpc("set_album_collection_cover", { p_id: id.toLowerCase(), p_owner: owner, p_revision: draft.revision, p_photo_id: draft.photoId });
+  if (error) albumDatabaseError(error);
+  if (!data || typeof data !== "object") albumDatabaseError({ message: "Invalid collection cover response" });
+  return collection(data as CollectionRow);
 }

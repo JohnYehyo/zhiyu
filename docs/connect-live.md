@@ -33,6 +33,8 @@ order by table_name, ordinal_position;
 
 相册集升级：独立相册已经可用时，完整执行 [query-album-collections.sql](../supabase/setup/query-album-collections.sql)。单个 DO 语句可重复运行，新增分组与公开集合汇总，旧照片仍保持未分组和原公开状态。随后部署新版应用，不重新初始化数据库。
 
+手动封面升级：已启用相册集后，整体执行 [query-album-covers.sql](../supabase/setup/query-album-covers.sql)。保留原自动封面，提供显式手动选择与恢复；只允许已公开的相册成员，不公开私有照片。
+
 ## 2. 管理员
 
 Supabase Authentication → Users 创建邮箱/密码账号并确认邮箱；如果使用Invite user邀请，则先按[邀请与密码步骤](admin-account.md)确认Site URL与回跳地址，再接受邮件设置密码；默认邮件已兼容，自定义模板可选。复制该用户 UID。关闭公开注册，博客不提供注册入口。UID 填入 Vercel 的 ADMIN_USER_ID，邮箱和密码只在登录页输入，不提交仓库或聊天。

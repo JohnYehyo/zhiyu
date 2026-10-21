@@ -50,6 +50,7 @@ vi.mock("../supabase/service", () => ({ getServiceSupabase: () => createClient("
       else if (url.pathname.endsWith("/create_album_collection")) result = await state.db!.query<{result:unknown}>("select public.create_album_collection($1,$2,$3) as result",[args.p_owner,args.p_title,args.p_description]);
       else if (url.pathname.endsWith("/update_album_collection")) result = await state.db!.query<{result:unknown}>("select public.update_album_collection($1,$2,$3,$4,$5) as result",[args.p_id,args.p_owner,args.p_revision,args.p_title,args.p_description]);
       else if (url.pathname.endsWith("/remove_album_collection")) result = await state.db!.query<{result:unknown}>("select public.remove_album_collection($1,$2,$3) as result",[args.p_id,args.p_owner,args.p_revision]);
+      else if (url.pathname.endsWith("/set_album_collection_cover")) result = await state.db!.query<{result:unknown}>("select public.set_album_collection_cover($1,$2,$3,$4) as result",[args.p_id,args.p_owner,args.p_revision,args.p_photo_id]);
       else throw Error("Unexpected album endpoint");
       return response(result.rows[0].result);
     } catch (error) { return response({ message: (error as Error).message, code: (error as { code?: string }).code ?? "P0001" }, 400); }
@@ -60,6 +61,7 @@ import { GET, POST } from "@/app/api/admin/album/route";
 import { PATCH, DELETE } from "@/app/api/admin/album/[id]/route";
 import { GET as collectionsGET, POST as collectionsPOST } from "@/app/api/admin/album/collections/route";
 import { PATCH as collectionsPATCH, DELETE as collectionsDELETE } from "@/app/api/admin/album/collections/[id]/route";
+import { PATCH as coverPATCH } from "@/app/api/admin/album/collections/[id]/cover/route";
 import { listAlbumPage } from "./album-repository";
 const owner = "11111111-1111-4111-8111-111111111111";
 const foreign = "22222222-2222-4222-8222-222222222222";
@@ -74,6 +76,7 @@ beforeAll(async () => {
   await state.db.exec(await readFile(new URL("../../../supabase/migrations/202610120001_initial.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-collections.sql", import.meta.url), "utf8"));
+  await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-covers.sql", import.meta.url), "utf8"));
 }, 30000);
 afterAll(async () => { await state.db?.close(); });
 beforeEach(async () => {
@@ -177,7 +180,7 @@ it("manages collections with private counts, filters, rename, versioned deletion
   const created = await collectionsPOST(request("POST",{title:"旅行",description:"路上"}));
   const {collection} = await created.json();
   expect(collection).toMatchObject({title:"旅行",description:"路上",revision:1,photoCount:0});
-  expect(Object.keys(collection).sort()).toEqual(["createdAt","description","id","photoCount","revision","title","updatedAt"]);
+  expect(Object.keys(collection).sort()).toEqual(["coverPhotoId","createdAt","description","id","photoCount","revision","title","updatedAt"]);
   const {photo} = await (await POST(request("POST",{mediaId,...metadata,collectionId:collection.id}))).json();
   expect(photo.collectionId).toBe(collection.id);
   expect(await (await collectionsGET(new Request("http://localhost/api/admin/album/collections"))).json()).toMatchObject({collections:[{id:collection.id,photoCount:1}]});
@@ -220,4 +223,49 @@ it("clamps a now-empty last filtered page after photos move to another collectio
  const result=await add(); const {photo}=await result.json();
  const page=await listAlbumPage(owner,{page:2,pageSize:15,collectionId:"unassigned"});
  expect(page.pagination).toEqual({page:1,pageSize:15,total:1});expect(page.photos.map(p=>p.id)).toEqual([photo.id]);
+});
+
+it("selects and resets a cover through the real repository/SQL boundary with canonical IDs and collection revisions",async()=>{
+  const {collection} = await (await collectionsPOST(request("POST",{title:"旅行",description:""}))).json();
+  const {photo} = await (await POST(request("POST",{mediaId,...metadata,collectionId:collection.id}))).json();
+  await PATCH(request("PATCH",{...metadata,revision:1,published:true}),context(photo.id));
+  state.revalidate.mockClear();
+  const selected = await coverPATCH(request("PATCH",{revision:1,photoId:photo.id.toUpperCase()}),context(collection.id.toUpperCase()));
+  expect(selected.status).toBe(200);
+  expect(selected.headers.get("Cache-Control")).toBe("private, no-store");
+  expect(await selected.json()).toMatchObject({collection:{id:collection.id,coverPhotoId:photo.id,revision:2,photoCount:1}});
+  expect(state.requests.at(-1)?.body).toEqual({p_owner:owner,p_id:collection.id,p_revision:1,p_photo_id:photo.id});
+  expect(state.revalidate).toHaveBeenCalledExactlyOnceWith("/album");
+  const listed = await collectionsGET(new Request("http://localhost/api/admin/album/collections"));
+  expect(await listed.json()).toMatchObject({collections:[{coverPhotoId:photo.id,revision:2}]});
+  const stale = await coverPATCH(request("PATCH",{revision:1,photoId:null}),context(collection.id));
+  expect(stale.status).toBe(409); expect(await stale.json()).toMatchObject({code:"COLLECTION_CONFLICT"});
+  const reset = await coverPATCH(request("PATCH",{revision:2,photoId:null}),context(collection.id));
+  expect(await reset.json()).toMatchObject({collection:{coverPhotoId:null,revision:3}});
+  expect((await state.db!.query("select revision::int as revision from public.album_photos")).rows).toEqual([{revision:2}]);
+});
+it("rejects cover authorization, origin and malformed inputs before repository access",async()=>{
+  const call = (body:unknown={revision:1,photoId:null},id=mediaId,origin="http://localhost") => coverPATCH(request("PATCH",body,origin),context(id));
+  state.user=null; expect((await call()).status).toBe(401);
+  state.user={id:foreign}; expect((await call()).status).toBe(403);
+  state.user={id:owner}; state.authError={message:"invalid"}; expect((await call()).status).toBe(401);
+  state.authError=null; expect((await call(undefined,mediaId,"https://foreign.example")).status).toBe(403);
+  expect((await call(undefined,"invalid")).status).toBe(400);
+  for(const body of [{revision:1},{revision:1,photoId:"invalid"},{revision:0,photoId:null},{revision:1,photoId:null,ownerId:foreign}])
+    expect((await call(body)).status).toBe(400);
+  expect(state.requests).toEqual([]); expect(state.revalidate).not.toHaveBeenCalled();
+});
+it("returns a safe cover conflict for private photos and hides foreign collections without writes",async()=>{
+  const {collection} = await (await collectionsPOST(request("POST",{title:"旅行",description:""}))).json();
+  const {photo} = await (await POST(request("POST",{mediaId,...metadata,collectionId:collection.id}))).json();
+  state.revalidate.mockClear();
+  const response = await coverPATCH(request("PATCH",{revision:1,photoId:photo.id}),context(collection.id));
+  expect(response.status).toBe(409); const body = await response.json();
+  expect(body.code).toBe("ALBUM_COVER_INVALID"); expect(body.error).not.toContain("ALBUM_COVER_INVALID");
+  const other = (await state.db!.query<{value:{id:string}}>("select public.create_album_collection($1,'foreign','') as value",[foreign])).rows[0].value;
+  const forged = await coverPATCH(request("PATCH",{revision:1,photoId:null}),context(other.id));
+  expect(forged.status).toBe(404); expect(await forged.json()).toMatchObject({code:"COLLECTION_NOT_FOUND"});
+  expect((await state.db!.query("select revision::int as revision from public.album_collections where id=$1",[collection.id])).rows).toEqual([{revision:1}]);
+  expect((await state.db!.query("select * from public.published_album_photos")).rows).toEqual([]);
+  expect(state.revalidate).not.toHaveBeenCalled();
 });

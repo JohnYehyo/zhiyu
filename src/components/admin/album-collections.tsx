@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FolderPlus, Pencil, Save, Trash2, X } from "lucide-react";
+import { FolderPlus, Pencil, RefreshCw, Save, Trash2, X } from "lucide-react";
 import type { AlbumCollection } from "@/lib/album-types";
 import { adminRequest } from "@/lib/admin/api";
 import { albumErrorMessage } from "@/lib/admin/album-workflow";
@@ -16,6 +16,8 @@ interface Props {
   onDeleted(id: string): void;
   onDirtyChange(dirty: boolean): void;
   onBusyChange(busy: boolean): void;
+  onResetCover?(): void;
+  onEditingChange?(editing:boolean): void;
 }
 export function AlbumCollections(props: Props) {
   const [editing, setEditing] = useState<{ original?: AlbumCollection; title: string; description: string } | null>(null);
@@ -24,7 +26,9 @@ export function AlbumCollections(props: Props) {
   const lock = useRef(false);
   const active = props.collections.find((collection) => collection.id === props.value);
   const dirty = !!editing && (editing.title !== (editing.original?.title ?? "") || editing.description !== (editing.original?.description ?? ""));
-  const { onDirtyChange, onBusyChange } = props;
+  const { onDirtyChange, onBusyChange, onEditingChange } = props;
+  const isEditing=editing!==null;
+  useEffect(() => { onEditingChange?.(isEditing); }, [isEditing,onEditingChange]);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   function close() {
     if (dirty && !window.confirm("相册集信息还没有保存。放弃修改吗？")) return false;
@@ -66,6 +70,7 @@ export function AlbumCollections(props: Props) {
       </select></label>
       <button type="button" className="admin-button subtle" disabled={disabled} onClick={() => start()}><FolderPlus size={14} />新建相册集</button>
       {active && <><button type="button" className="admin-button subtle" disabled={disabled} onClick={() => start(active)}><Pencil size={14} />编辑相册集</button><button type="button" className="admin-button subtle" disabled={disabled} onClick={() => void remove()}><Trash2 size={14} />删除相册集</button></>}
+      {active?.coverPhotoId && props.onResetCover && <button type="button" className="admin-button subtle" disabled={disabled || !!editing} onClick={props.onResetCover}><RefreshCw size={14}/>恢复自动封面</button>}
     </div>
     {active?.description && !editing && <p className="admin-hint">{active.description}</p>}
     {editing && <form className="admin-album-collection-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>

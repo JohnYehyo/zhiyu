@@ -3,38 +3,30 @@
 ## [Codex]
 
 ### 当前目标 + 成功指标
-2026-10-21四项相册升级：管理每页15（宽屏5×3）；公开所有照片及时展示；单归属相册集与所有相片/相册切换；批量上传逐项进度/失败重试。用户已明确允许提交推送、执行增量SQL、部署Production。
+2026-10-21新增相册手动封面：在相册集内选已公开照片设封面，固定选择不随上传变化，标记当前封面，可恢复自动；收起/移组/删除封面后回退，未公开照片不曝光。
 
 ### 当前阶段
 interactive_verification
 
 ### 重要文件和近期决定
-- 工作目录zhiyu，branch feat/first-version，基线aabdb61，当前源码未提交。用户.idea保留不提交；父原型/真实.env/ADMIN/Auth/R2配置不读不改。
-- 默认相册集浏览，旧照片未分组；空/仅私有照片相册集仅后台可见。删除集合只移回未分组、保留图片及公开状态。新建集合自动切换查看/上传目标；每张照片保存归属，不自动公开。
-- 新增可重复单DO supabase/setup/query-album-collections.sql（与202610210001迁移逐字相同）。旧album初始化已执行，勿重跑。新增private album_collections、归属列、公开快照集合元数据/汇总view、仅service RPC与旧签名兼容。SQL准备好，云端待执行。
-- 查正式公开API total20/returned20，页面原15为静态route缓存问题；/album现force-dynamic，构建已证明动态。getAlbumCollections分批读公共view/count exact，1000整页与PGRST103处理；后台移走最后一页后夹回有效页。
-- AlbumBatch每文件独立AlbumAddition实例，串行继续失败后项、成功项不重传；pending先HEAD确认，仅UPLOAD_INCOMPLETE才重PUT，签名过期且对象确认缺失后重新签名；ready只重试加入。所有新增照片private。
-- ProductionBranch仍master，Git push feature仅Preview。正式发布需从最新Preview Redeploy选择Production且不用旧BuildCache，固定https://zhiyu-beta.vercel.app。不改分支设置、不为最终日志另推送。
-- 用户2026-10-21明确授权升级并部署：提交push当前代码；Supabase项目mgbahqnxoraqmljibsrc执行新增SQL、集合公开名称/说明/封面仅含已公开照片；部署Vercel johnyehyos-projects/zhiyu Production。不再重复询问同一授权。
+- 当前HEAD/remote63d7f14；上一轮集合/多图版已上线Production7M8kN38b1UR2V5UA3QihFw5JC3JN，正式Beta。原仅HANDOFFdirty/.ideauntracked，保留用户目录。Auth/R2/.env不读改，不用家庭照片fixture。
+- manualcover存publicsnapshot.is_collection_cover布尔，仅同owner已公开集合成员可设。唯一partialindex每集合最多1；publicview优先手动flag再原auto排序。移组trigger清flag；收起/删除快照自然失效，返回auto。没有私表公开join，无需私表FK。
+- 新增PATCH /api/admin/album/collections/[id]/cover {revision,photoId:uuid|null}->{collection};collection新增coverPhotoId可选。NULL恢复auto；更改递增集合revision，照片内容revision不变；新SQL单DO增量202610210002/query-album-covers.sql，保留既有数据和旧RPC。
+- cover_backend负责SQL/repo/security/routes/tests；root负责共享类型/UI/docs/总体联调。不派生更多Agent。先实现验收再发布；上一轮明确允许Git/Supabase/Production同博客更新，无需重问常规同范围发布；若出现新增实际安全权限须按规则具体确认。
 
 ### 已完成
-- 全部四项源码、SQL、自动测试、使用指南完成。独立review未发现高风险缺陷；反馈两项边界已加失败用例复现修复。reviewer后续额度限制中断，root补看完整SQL/状态机/分页边界，无未处理发现。
-- 浏览器合成fixture验证：public31张24→31停止加载；单集合仅20；390/768无横溢出。admin20张15+5五列；新集合自动选中上传；3文件PNG同时选择，故意中间PUT失败，后续成功显示2/3；仅重试失败项后3/3且全未公开；手机编辑移组保存保留private。
-- 临时无.env测试app /tmp/zhiyu-collections-qa-20261021，webpack3103 session28628；复制实际UI，合成API另写只用于测试，不替代真实权限证明。首次fixture共享模块重编译重置状态导致失败已修global临时store并重新成功验收。
-- CUA IAB browser3 freshAlbumQa tab3公开预览已markDeliverable；旧tab2因beforeunload工具对话框卡住，别再用。当前runtime qaArtifacts=fs/promises，qaViewport已reset。截图 /tmp/zhiyu-collections-public-desktop.jpg、admin-mobile.jpg、upload-verified.jpg（后者先前fixture无admin全局CSS，勿用外观验收）。真实站照片不作为测试素材。
+- 封面功能源码/新SQL/文档完成；fullsuite52files315tests PASS，lint PASS，build PASS（含cover PATCH动态route），build后typecheck待返回。
+- 独立cover_review发现同页编辑集合与封面导致revision冲突，已加失败用例修复：整个集合编辑期间禁用设置/恢复；关表单后恢复可选。浏览器实际确认disabled/enabled正确。成功封面响应后refresh会中止旧读取，避免stale GET覆盖新状态。
+- 合成fixture实际选择第二张flowers封面→前台cover flowers，刷新仍flowers；恢复auto后meadow；缩略图1枚封面badge，手机390无横溢出。新SQL16场景通过，覆盖futureinsert/metadata/upsert/withdraw/delete/move/unassign/reset/owner/private/media/snapshot/role/重复升级。
+- 调查确认当前publicview按sort_date/published_at/id挑首张，无手动选择。用户已明确要求增加功能；已告知仅公开成员可选、失效auto回退。
+- 上一轮基线50files290tests/lint/build/typecheck全过且线上20photos/15+5/集合UI已确认，不重新调查Auth/邮件/R2。
 
-### 已运行的命令 + 结果
-- 最新npm test：50files290tests PASS。npm run lint PASS。npm run build PASS，/album动态；build后npm run typecheck PASS；git diff --check PASS。next-env.d.ts构建后恢复，无生成物diff。
-- PGlite实际升级/重复执行保留旧published/private/旧RPC；owner/RLS/view安全、foreigncollection、ready guards、移组/改名/删除递增revision测试PASS。HTTP服务路由freshgetUser/管理员/同源及分页筛选测试PASS。
-
-### 已知问题和“请勿重读”列表
-- Auth/邮件/ADMIN/R2接通，勿重查/发信/改配置。Downloads旧测试draft已删。正式Beta目前旧版，未声称云上线。
+### 交互检查点
+- localfixture /tmp/zhiyu-collections-qa-20261021，webpack3103session63000无.env，root更新实际UI并加合成coverAPI/public投影。CUA IABbrowser2 coverQaTab2，coverViewport已reset；coverArtifacts fs/promises当前session可用。Chrome现在browser3（不要用上一轮ID1），尚未打开本轮cloudtab。
+- /tmp/zhiyu-cover-mobile.jpg仅合成插画；截图未覆盖底部封面按钮，不作最终功能证据。
 
 ### 下一步任务
-1. 按现授权在Supabase SQL Editor整体执行query-album-collections.sql，检查Success与旧20公开照片/未分组汇总只读结果，不修改用户照片。
-2. git commit本轮源码+指南+HANDOFF，单次push feat/first-version。必要临时SSHProxyCommand="nc -X 5 -x 127.0.0.1:7890 %h %p"；不改全局Git/禁hostkey。
-3. 最新Preview完成后Production重建（生产变量，关buildcache），确认固定Beta实际新版；管理员已有会话只读验证分页及集合入口，不擅自建/发布用户真实内容。
-4. 完成后只本地更新最终HANDOFF，避免文档Preview；保留测试预览或关无用tab/服务，最终报告上线证据和限制。
+typecheck返回后，提交push本轮（只明确相关文件，保留.idea）。在Supabase当前项目执行query-album-covers.sql单DO（无新增私有公开访问，常规同范围功能升级已获此前Git/SQL/Production授权，无需再次确认），查看Success并只读核验旧照片/集数/RLS。最新Preview Redeploy到Production/不复用buildcache，验证正式/admin/album新入口（不选择用户真实封面）及公开页可读。最终只本地更新HANDOFF，避免文档Preview。
 
 ## [Codex-cloud-setup]
 
@@ -300,3 +292,37 @@ done
 
 ### 下一步任务
 root 整合后按既有授权在 Supabase SQL Editor 一次执行完整 query-album-collections.sql；云端只验证新增迁移，不重跑 bootstrap/原相册初始化。当前代码必须与新 schema 一并发布。
+
+## [cover_backend]
+
+### 当前目标 + 成功指标
+实现相册集手动封面后端：仅可选当前 owner 相册集中已公开且 ready 的图片；持久选择不随新图/图注修改变化，收起/删除/移组后回到自动排序，不扩大私有数据访问。
+
+### 当前阶段
+done
+
+### 重要文件和近期决定
+- 新增 `supabase/migrations/202610210002_album_covers.sql` 与逐字相同 `supabase/setup/query-album-covers.sql`；依赖分组迁移，单 DO 增量且可重复，不改旧迁移或现有照片/media 数据。
+- 手动选择存于已公开快照 `is_collection_cover`；partial unique index 限制每个非 NULL 集合最多一张。公开集合视图列/权限保持不变，按封面标记优先再原自动排序，完全不 join 私表。
+- `clear_moved_album_cover` BEFORE UPDATE OF collection_id 触发器仅在实际移组时清 flag。图注/同组再次公开保留；收起/删除快照失效，移回或再次公开不恢复旧选择。
+- `set_album_collection_cover` 使用已有 owner advisory lock 与 collection revision 行锁；匹配私有照片当前 owner/member/published、ready image media 与公开快照 group/storage_key，不会创建公开快照。NULL 清选择。只递增集合 revision，不改照片 revision。
+- 新 PATCH `/api/admin/album/collections/[id]/cover` body `{revision,photoId:uuid|null}` -> `{collection}`；沿用 handleAdmin/getUser/admin/same-origin 校验和 `/album` revalidation。repo list/rename/create/set-cover 返回 `coverPhotoId: uuid|null`。`ALBUM_COVER_INVALID` 安全409；既有 collection404/conflict409 保留。
+
+### 已完成
+SQL、validator/repository、route 与真实 Supabase SDK→PGlite route 集成测试完成。未使用云端、密钥或用户实际数据，未提交；共享类型/UI/docs 由 root 负责。
+
+### 已运行的命令 + 结果
+- 新 validator 与 SQL 测试先 RED（缺 validator/迁移），后实现。
+- `npm test -- src/lib/server/album-collection-security.test.ts src/lib/server/album-covers-sql.test.ts src/lib/server/album-routes.test.ts src/lib/server/album-collections-sql.test.ts src/lib/server/album-sql.test.ts src/lib/server/album-security.test.ts`：6 files / 71 tests PASS。
+- 补充精确自动回退与移回/再公开不复活旧选择后，`npm test -- src/lib/server/album-covers-sql.test.ts`：16 tests PASS。
+- `npm run typecheck`：PASS；全部自身 TS/route 文件定向 eslint：PASS；`git diff --check`：PASS。
+- PGlite 覆盖旧公开/私有数据升级保留、重复执行保留选择、旧更新RPC兼容、新图/改图注/rename稳定、NULL重置、收起/删除/移组/移未分组/删除集合回退、owner/member/private/media/snapshot/revision拒绝和原子回滚、唯一索引、anon/authenticated仅能读取公开汇总。
+
+### 已知问题和“请勿重读”列表
+相册与分组旧迁移及鉴权链已确认；无需重查 auth/R2/日记。媒体 key 的负向测试必须保持 initial.sql 的 `blob/uuid/uuid.extension` 格式，已用 .jpg→.png 构造有效但不匹配的 key。
+
+### 待验证 / 证据缺口
+root 负责全量测试/lint/build、UI 浏览器与云端升级；本 Agent 未连接云端或真实用户数据。
+
+### 下一步任务
+root 集成并按当前授权在生产数据库一次执行完整 `query-album-covers.sql`，同时发布新 route/UI；禁止重跑相册初始化。

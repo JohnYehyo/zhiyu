@@ -12,3 +12,9 @@ it("offers all, unassigned and collection filters and keeps management controls 
   expect(selected).toContain("山间的周末");
   expect(selected).toContain("编辑相册集"); expect(selected).toContain("删除相册集");
 });
+
+it("offers restoring automatic cover only for a collection with a manual cover",()=>{
+ const props={collections:[{id:"trip",title:"旅行",description:"",revision:2,photoCount:3,createdAt:"",updatedAt:"",coverPhotoId:"photo"}],value:"trip",disabled:false,onChange(){},beforeChange:()=>true,onSaved(){},onDeleted(){},onDirtyChange(){},onBusyChange(){},onResetCover(){}};
+ expect(renderToStaticMarkup(<AlbumCollections {...props}/>)).toContain("恢复自动封面");
+ expect(renderToStaticMarkup(<AlbumCollections {...props} collections={[{...props.collections[0],coverPhotoId:null}]}/>)).not.toContain("恢复自动封面");
+});
