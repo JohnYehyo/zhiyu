@@ -7,6 +7,9 @@ import { ServiceError } from "./errors";
 
 interface AlbumRow {
   id: string;
+  media_only?: boolean;
+  deletion_pending?: boolean;
+  filename?: string | null;
   media_id: string;
   collection_id: string | null;
   storage_key: string;
@@ -18,11 +21,14 @@ interface AlbumRow {
   created_at: string;
   updated_at: string;
 }
-const columns = "id,media_id,collection_id,storage_key,caption,alt,taken_on,revision,published,created_at,updated_at";
+const columns = "id,media_id,collection_id,storage_key,caption,alt,taken_on,revision,published,created_at,updated_at,media_only,deletion_pending,filename";
 function photo(row: AlbumRow): AlbumPhoto {
   return {
     id: row.id,
     mediaId: row.media_id,
+    ...(row.media_only ? { mediaOnly: true } : {}),
+    ...(row.deletion_pending ? { deletionPending: true } : {}),
+    ...(row.filename ? { filename: row.filename } : {}),
     collectionId: row.collection_id,
     storageKey: row.storage_key,
     caption: row.caption,
@@ -56,7 +62,7 @@ export function albumDatabaseError(error: { message: string; code?: string }): n
 export async function listAlbumPage(owner: string, options: AlbumQuery): Promise<{ photos: AlbumPhoto[]; pagination: PageInfo }> {
   const start = (options.page - 1) * options.pageSize;
   let query = getServiceSupabase()
-    .from("album_photos")
+    .from("admin_album_photo_inventory")
     .select(columns, { count: "exact" })
     .eq("owner_id", owner);
   if (options.collectionId === "unassigned") query = query.is("collection_id", null);

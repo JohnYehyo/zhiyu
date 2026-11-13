@@ -7,6 +7,9 @@ export interface AlbumDraft {
 export interface AlbumPhoto extends AlbumDraft {
   id: string;
   mediaId: string;
+  mediaOnly?: boolean;
+  deletionPending?: boolean;
+  filename?: string;
   storageKey: string;
   revision: number;
   published: boolean;

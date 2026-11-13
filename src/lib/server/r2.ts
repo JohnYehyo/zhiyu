@@ -3,6 +3,7 @@ import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { mediaUrl } from "../media";
@@ -46,7 +47,7 @@ export function getR2ConfigStatus() {
 export function hasR2Config(): boolean {
   return getR2ConfigStatus().configured;
 }
-export function r2Storage(): ObjectStorage {
+export function r2Storage(): ObjectStorage & { remove(key: string): Promise<void> } {
   const status = getR2ConfigStatus();
   if (!status.configured) {
     const details = [
@@ -72,6 +73,10 @@ export function r2Storage(): ObjectStorage {
   });
   const Bucket = process.env.R2_BUCKET_NAME!;
   return {
+    async remove(Key) {
+      try { await client.send(new DeleteObjectCommand({ Bucket, Key })); }
+      catch { throw new ServiceError(503, "STORAGE_UNAVAILABLE", "删除云端图片失败，请重试。"); }
+    },
     async sign(Key, ContentType, ContentLength) {
       return getSignedUrl(
         client,

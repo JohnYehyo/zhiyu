@@ -108,3 +108,10 @@ it("missing object never changes media to ready", async () => {
   ).rejects.toThrow(/未完成/);
   expect(f.get()?.status).toBe("pending");
 });
+it('does not confirm an image whose deletion is in progress',async()=>{
+ const f=fixture(); const signed=await createUpload(owner,{filename:'x.jpg',contentType:'image/jpeg',size:100},f.repository,f.storage);
+ const original=f.get()!; (original as unknown as {status:string}).status='deleting';
+ let checked=false; f.storage.head=async()=>{checked=true; return {contentType:'image/jpeg',size:100}};
+ await expect(completeUpload(owner,signed.media.id,f.repository,f.storage)).rejects.toThrow(/删除/);
+ expect(checked).toBe(false);
+});

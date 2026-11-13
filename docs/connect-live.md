@@ -35,6 +35,8 @@ order by table_name, ordinal_position;
 
 手动封面升级：已启用相册集后，整体执行 [query-album-covers.sql](../supabase/setup/query-album-covers.sql)。保留原自动封面，提供显式手动选择与恢复；只允许已公开的相册成员，不公开私有照片。
 
+素材整合与安全删除升级：依次分别完整执行 [query-album-media-view.sql](../supabase/setup/query-album-media-view.sql) 和 [query-media-delete.sql](../supabase/setup/query-media-delete.sql)，两者均为可重复执行的增量操作，不自动公开或删除照片。执行成功后再部署新版应用。R2 API token 需要对图片对象有删除权限；删除失败时保留可重试状态。
+
 ## 2. 管理员
 
 Supabase Authentication → Users 创建邮箱/密码账号并确认邮箱；如果使用Invite user邀请，则先按[邀请与密码步骤](admin-account.md)确认Site URL与回跳地址，再接受邮件设置密码；默认邮件已兼容，自定义模板可选。复制该用户 UID。关闭公开注册，博客不提供注册入口。UID 填入 Vercel 的 ADMIN_USER_ID，邮箱和密码只在登录页输入，不提交仓库或聊天。

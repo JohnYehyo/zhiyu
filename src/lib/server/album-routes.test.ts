@@ -31,13 +31,14 @@ vi.mock("../supabase/service", () => ({ getServiceSupabase: () => createClient("
     if (state.invalidRange && Number(url.searchParams.get("offset")) > 0)
       return response({ code: "PGRST103", message: "Requested range not satisfiable" }, 416);
     try {
-      if (url.pathname === "/rest/v1/album_photos") {
+      if (url.pathname === "/rest/v1/album_photos" || url.pathname === "/rest/v1/admin_album_photo_inventory") {
+        const table = url.pathname.endsWith("admin_album_photo_inventory") ? "public.admin_album_photo_inventory" : "public.album_photos";
         const owner = url.searchParams.get("owner_id")?.replace(/^eq\./, "");
         const filter = url.searchParams.get("collection_id");
         const where = filter === "is.null" ? " and collection_id is null" : filter?.startsWith("eq.") ? " and collection_id=$4" : "";
         const values = [owner, Number(url.searchParams.get("limit")), Number(url.searchParams.get("offset")), ...(filter?.startsWith("eq.") ? [filter.slice(3)] : [])];
-        const rows = (await state.db!.query(`select * from public.album_photos where owner_id=$1${where} order by updated_at desc,id asc limit $2 offset $3`, values)).rows;
-        const total = (await state.db!.query<{ total: number }>(`select count(*)::int as total from (select id from public.album_photos where owner_id=$1${where} limit $2 offset $3) p`, [owner, 100000, 0, ...(filter?.startsWith("eq.") ? [filter.slice(3)] : [])])).rows[0].total;
+        const rows = (await state.db!.query(`select * from ${table} where owner_id=$1${where} order by updated_at desc,id asc limit $2 offset $3`, values)).rows;
+        const total = (await state.db!.query<{ total: number }>(`select count(*)::int as total from (select id from ${table} where owner_id=$1${where} limit $2 offset $3) p`, [owner, 100000, 0, ...(filter?.startsWith("eq.") ? [filter.slice(3)] : [])])).rows[0].total;
         return response(rows, 200, total);
       }
       const args = body as Record<string, unknown>;
@@ -74,9 +75,11 @@ beforeAll(async () => {
   state.db = new PGlite();
   await state.db.exec("create role anon; create role authenticated; create role service_role bypassrls; grant usage on schema public to anon,authenticated,service_role;");
   await state.db.exec(await readFile(new URL("../../../supabase/migrations/202610120001_initial.sql", import.meta.url), "utf8"));
+  await state.db.exec(await readFile(new URL("../../../supabase/migrations/202610130001_maintenance.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-collections.sql", import.meta.url), "utf8"));
   await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-covers.sql", import.meta.url), "utf8"));
+  await state.db.query(await readFile(new URL("../../../supabase/setup/query-album-media-view.sql", import.meta.url), "utf8"));
 }, 30000);
 afterAll(async () => { await state.db?.close(); });
 beforeEach(async () => {
@@ -110,7 +113,7 @@ it("runs add, publish/save, private list and removal against real SQL without le
   expect(state.revalidate).toHaveBeenCalledWith("/album");
   const page = await GET(new Request("http://localhost/api/admin/album?page=1&pageSize=10"));
   expect(await page.json()).toMatchObject({ photos: [{ id: photo.id, caption: "公开图注" }], pagination: { page: 1, pageSize: 10, total: 1 } });
-  const query = state.requests.find(({ url }) => url.pathname === "/rest/v1/album_photos")!.url.searchParams;
+  const query = state.requests.find(({ url }) => url.pathname === "/rest/v1/admin_album_photo_inventory")!.url.searchParams;
   expect(query.get("owner_id")).toBe(`eq.${owner}`);
   const removed = await DELETE(request("DELETE", { revision: 2 }), context(photo.id.toUpperCase()));
   expect(await removed.json()).toEqual({ deletedId: photo.id });
@@ -268,4 +271,24 @@ it("returns a safe cover conflict for private photos and hides foreign collectio
   expect((await state.db!.query("select revision::int as revision from public.album_collections where id=$1",[collection.id])).rows).toEqual([{revision:1}]);
   expect((await state.db!.query("select * from public.published_album_photos")).rows).toEqual([]);
   expect(state.revalidate).not.toHaveBeenCalled();
+});
+
+it("includes a ready article image not yet added to an album in the ungrouped view", async () => {
+  const response = await GET(new Request("http://localhost/api/admin/album?collectionId=unassigned"));
+  const body = await response.json();
+  expect(body.pagination.total).toBe(1);
+  expect(body.photos).toEqual([expect.objectContaining({ mediaId, collectionId: null, published: false })]);
+});
+it('paginates media-only and grouped photos without duplicating media or leaking other owners',async()=>{
+ const other='66666666-6666-4666-8666-666666666666';
+ await state.db!.query("insert into public.media(id,owner_id,storage_key,mime_type,size,status,original_name) values($1,$2,$3,'image/jpeg',100,'ready','article.jpg')",[other,owner,`blob/${owner}/${other}.jpg`]);
+ await state.db!.query("insert into public.media(id,owner_id,storage_key,mime_type,size,status) values($1,$2,$3,'image/jpeg',100,'ready')",['77777777-7777-4777-8777-777777777777',foreign,`blob/${foreign}/77777777-7777-4777-8777-777777777777.jpg`]);
+ const {photo}=await (await add()).json();
+ const page=await GET(new Request('http://localhost/api/admin/album?page=1&pageSize=1'));
+ const first=await page.json();expect(first.pagination.total).toBe(2);expect(first.photos).toHaveLength(1);
+ const next=await GET(new Request('http://localhost/api/admin/album?page=2&pageSize=1'));
+ const second=await next.json();expect(second.pagination.total).toBe(2);expect(new Set([first.photos[0].mediaId,second.photos[0].mediaId])).toEqual(new Set([mediaId,other]));
+ const article=[first.photos[0],second.photos[0]].find((p:{mediaId:string})=>p.mediaId===other);
+ expect(article).toMatchObject({mediaOnly:true,filename:'article.jpg',published:false,collectionId:null});
+ expect([first.photos[0],second.photos[0]].find((p:{id:string})=>p.id===photo.id)).toBeDefined();
 });

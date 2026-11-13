@@ -4,7 +4,7 @@ import { ServiceError } from "./errors";
 import { validateId, validateUpload } from "./security";
 export interface UploadRepository {
   create(media: MediaRecord & { ownerId: string }): Promise<MediaRecord>;
-  get(id: string): Promise<(MediaRecord & { ownerId: string }) | null>;
+  get(id: string): Promise<(Omit<MediaRecord, "status"> & { status: MediaRecord["status"] | "deleting" | "deleted"; ownerId: string }) | null>;
   ready(id: string, owner: string): Promise<MediaRecord>;
 }
 export interface ObjectStorage {
@@ -64,6 +64,8 @@ export async function completeUpload(
   const media = await repository.get(id);
   if (!media || media.ownerId !== owner)
     throw new ServiceError(404, "NOT_FOUND", "媒体不存在。");
+  if (media.status === "deleting" || media.status === "deleted")
+    throw new ServiceError(409, "MEDIA_DELETING", "图片正在删除或已删除，无法继续确认上传。");
   const object = await storage.head(media.storageKey);
   if (!object)
     throw new ServiceError(409, "UPLOAD_INCOMPLETE", "媒体上传未完成。");

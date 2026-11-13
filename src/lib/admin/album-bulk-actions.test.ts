@@ -10,4 +10,5 @@ it('continues after a conflict and reports exactly which photos failed',async()=
  expect(update.mock.calls.map(([p])=>p.id)).toEqual(['first','conflict','last']);
  expect(result.failed.map(p=>p.id)).toEqual(['conflict']);
  expect(result.succeeded).toBe(2);
+ expect(result.errors).toEqual([{photo:photos[1],message:'conflict'}]);
 });

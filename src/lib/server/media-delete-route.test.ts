@@ -1,0 +1,15 @@
+import { beforeEach, expect, it, vi } from 'vitest';
+const state=vi.hoisted(()=>({user:'11111111-1111-4111-8111-111111111111',calls:[] as string[],failure:'',removed:[] as string[]}));
+vi.mock('server-only',()=>({}));
+vi.mock('../supabase/server',()=>({getServerSupabase:async()=>({auth:{getUser:async()=>({data:{user:state.user?{id:state.user}:null},error:null})}})}));
+vi.mock('../supabase/service',()=>({getServiceSupabase:()=>({rpc:async(name:string,args:{p_id:string})=>{state.calls.push(name);if(state.failure&&name==='begin_media_delete')return {error:{message:state.failure}};return {data:name==='begin_media_delete'?`blob/${state.user}/${args.p_id}.jpg`:args.p_id,error:null}}})}));
+vi.mock('./r2',()=>({r2Storage:()=>({remove:async(key:string)=>{state.removed.push(key)}})}));
+vi.mock('next/cache',()=>({revalidatePath:vi.fn()}));
+import { DELETE } from '@/app/api/admin/media/[id]/route';
+const id='44444444-4444-4444-8444-444444444444',owner='11111111-1111-4111-8111-111111111111';
+const req=(origin='http://localhost')=>new Request('http://localhost/api/admin/media/x',{method:'DELETE',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({revision:null})});
+const ctx={params:Promise.resolve({id})};
+beforeEach(()=>{state.user=owner;state.calls=[];state.removed=[];state.failure='';vi.stubEnv('ADMIN_USER_ID',owner);vi.stubEnv('SUPABASE_SECRET_KEY','synthetic');vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','https://unit.supabase.co');vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY','synthetic')});
+it('returns an actionable conflict without deleting the object when the image is referenced',async()=>{state.failure='MEDIA_IN_USE';const res=await DELETE(req(),ctx);expect(res.status).toBe(409);expect(await res.json()).toMatchObject({code:'MEDIA_IN_USE'});expect(state.calls).toEqual(['begin_media_delete']);expect(state.removed).toEqual([])});
+it('rejects unauthenticated and cross-origin deletion before calling storage',async()=>{state.user='';expect((await DELETE(req(),ctx)).status).toBe(401);state.user=owner;expect((await DELETE(req('https://foreign.example'),ctx)).status).toBe(403);expect(state.calls).toEqual([]);expect(state.removed).toEqual([])});
+it('removes the confirmed owner object and finalizes the deletion',async()=>{const res=await DELETE(req(),ctx);expect(res.status).toBe(200);expect(await res.json()).toEqual({deletedId:id});expect(state.calls).toEqual(['begin_media_delete','finish_media_delete']);expect(state.removed).toEqual([`blob/${owner}/${id}.jpg`])});

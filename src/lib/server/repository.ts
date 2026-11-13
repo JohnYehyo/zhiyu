@@ -234,9 +234,11 @@ export function uploadRepository(): UploadRepository {
         .update({ status: "ready" })
         .eq("id", id)
         .eq("owner_id", owner)
+        .in("status", ["pending", "ready"])
         .select("*")
-        .single();
+        .maybeSingle();
       if (error) databaseError(error);
+      if (!data) throw new ServiceError(409, "MEDIA_DELETING", "图片正在删除或已删除，无法继续确认上传。");
       return media(data as MediaRow);
     },
   };
