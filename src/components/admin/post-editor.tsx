@@ -103,6 +103,7 @@ export function PostEditor({
     kind?: "image" | "video";
     cover?: boolean;
     replacement?: Replacement;
+    append?: boolean;
     error?: string;
   } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -291,6 +292,7 @@ export function PostEditor({
       ...(replace && current ? { replacement: current } : {}),
     };
     if (fileInput.current) {
+      fileInput.current.multiple = kind === "image" && !cover && !replace;
       fileInput.current.accept =
         kind === "image"
           ? "image/jpeg,image/png,image/webp,image/gif"
@@ -320,13 +322,14 @@ export function PostEditor({
     kind: "image" | "video",
     cover: boolean,
     target?: Replacement,
+    append = false,
   ) {
     const result = await completeUpload(pending.media.id);
     if (result.media.status !== "ready")
       throw new Error("媒体尚未确认就绪，请重试确认。");
     if ((kind === "image") !== result.media.mimeType.startsWith("image/"))
       throw new Error("媒体类型不匹配，请重新选择。");
-    insertMedia(result.media, cover, target);
+    insertMedia(result.media, cover, target, append);
     setUpload(null);
     setMessage(
       cover ? "封面已上传。" : "媒体已插入，点击媒体可填写说明和图注。",
@@ -337,6 +340,7 @@ export function PostEditor({
     media: MediaRecord,
     cover: boolean,
     target?: Replacement,
+    append = false,
   ) {
     const url = mediaUrl(media.storageKey);
     if (media.status !== "ready") throw new Error("媒体尚未完成上传。");
@@ -358,28 +362,19 @@ export function PostEditor({
           src: url,
         }),
       );
-    } else
-      editor
-        ?.chain()
-        .focus()
-        .insertContent({
-          type: kind,
-          attrs: {
-            mediaId: media.id,
-            storageKey: media.storageKey,
-            src: url,
-            alt: "",
-            caption: "",
-          },
-        })
-        .run();
+    } else if (editor) {
+      const content = { type: kind, attrs: { mediaId: media.id, storageKey: media.storageKey, src: url, alt: "", caption: "" } };
+      const chain = editor.chain().focus();
+      if (append) chain.insertContentAt(editor.state.selection.to, content).run();
+      else chain.insertContent(content).run();
+    }
   }
 
-  async function handleFile(file: File) {
+  async function handleFile(file: File, append = false) {
     const { kind, cover, replacement: target } = uploadTarget.current;
     let pending: PendingUpload | undefined;
     setMessage("");
-    setUpload({ percent: 0, busy: true, kind, cover, replacement: target });
+    setUpload({ percent: 0, busy: true, kind, cover, replacement: target, append });
     try {
       validateUpload(file, kind);
       pending = await adminRequest<PendingUpload>("/api/admin/media", "POST", {
@@ -394,6 +389,7 @@ export function PostEditor({
         kind,
         cover,
         replacement: target,
+        append,
       });
       await putFile(file, pending, (percent) =>
         setUpload({
@@ -403,9 +399,11 @@ export function PostEditor({
           kind,
           cover,
           replacement: target,
+          append,
         }),
       );
-      await finishUpload(pending, kind, cover, target);
+      await finishUpload(pending, kind, cover, target, append);
+      return true;
     } catch (cause) {
       setUpload({
         percent: 0,
@@ -415,7 +413,9 @@ export function PostEditor({
         cover,
         error: cause instanceof Error ? cause.message : "上传失败。",
         replacement: target,
+        append,
       });
+      return false;
     }
   }
 
@@ -532,6 +532,7 @@ export function PostEditor({
                         upload.kind!,
                         Boolean(upload.cover),
                         upload.replacement,
+                        upload.append,
                       );
                     } catch (cause) {
                       setUpload({
@@ -1061,9 +1062,17 @@ export function PostEditor({
         ref={fileInput}
         hidden
         onChange={(event) => {
-          const file = event.target.files?.[0];
+          const files = Array.from(event.target.files ?? []);
           event.target.value = "";
-          if (file) void handleFile(file);
+          void (async () => {
+            for (let index = 0; index < files.length; index++) {
+              if (!await handleFile(files[index], index > 0)) {
+                if (index + 1 < files.length) setMessage(`已停止批量上传；剩余 ${files.length - index - 1} 张请在处理失败项后重新选择。`);
+                return;
+              }
+            }
+            if (files.length > 1) setMessage(`已上传并插入 ${files.length} 张图片。`);
+          })();
         }}
       />
     </div>

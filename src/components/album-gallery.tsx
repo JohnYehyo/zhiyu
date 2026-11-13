@@ -14,7 +14,6 @@ export function AlbumGallery({initial, collectionId}: {initial:PhotoPage;collect
   const [selected,setSelected]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [orderChanged,setOrderChanged]=useState(false);
   const dialog=useRef<HTMLDialogElement>(null);
   const request=useRef<AbortController|null>(null);
   const busy=useRef(false);
@@ -34,17 +33,16 @@ export function AlbumGallery({initial, collectionId}: {initial:PhotoPage;collect
     return ()=>{document.body.style.overflow=original;};
   },[selected]);
 
-  async function more() {
+  async function changePage(page:number) {
     if(busy.current)return;
     busy.current=true;setLoading(true);setError("");
     const controller=new AbortController();request.current=controller;
     try {
-      const response=await fetch(`/api/album?page=${pagination.page+1}&pageSize=${pagination.pageSize}${collectionId?`&collectionId=${encodeURIComponent(collectionId)}`:""}`,{cache:"no-store",signal:controller.signal});
+      const response=await fetch(`/api/album?page=${page}&pageSize=${pagination.pageSize}${collectionId?`&collectionId=${encodeURIComponent(collectionId)}`:""}`,{cache:"no-store",signal:controller.signal});
       if(!response.ok)throw new Error("照片暂时无法加载，请重试。");
       const next=await response.json() as PhotoPage;
-      const ids=new Set(photos.map(item=>item.id));
-      if(next.photos.some(item=>ids.has(item.id)))setOrderChanged(true);
-      setPhotos(current=>{const known=new Set(current.map(item=>item.id));return [...current,...next.photos.filter(item=>!known.has(item.id))];});
+      setPhotos(next.photos);
+      setSelected(null);
       setPagination(next.pagination);
     } catch(cause) {
       if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"照片暂时无法加载，请重试。");
@@ -61,11 +59,12 @@ export function AlbumGallery({initial, collectionId}: {initial:PhotoPage;collect
         </button>
       </figure>)}
     </div>}
-    {pagination.page*pagination.pageSize<pagination.total&&<div className="album-more">
-      <button type="button" disabled={loading} onClick={()=>void more()}>{loading?"正在加载照片…":"加载更多照片"}</button>
+    {pagination.total>pagination.pageSize&&<nav className="album-more" aria-label="相册分页">
+      <span>共 {pagination.total} 张 · 第 {pagination.page} / {Math.ceil(pagination.total/pagination.pageSize)} 页</span>{" "}
+      <button type="button" disabled={loading||pagination.page<=1} onClick={()=>void changePage(pagination.page-1)}>上一页</button>{" "}
+      <button type="button" disabled={loading||pagination.page>=Math.ceil(pagination.total/pagination.pageSize)} onClick={()=>void changePage(pagination.page+1)}>下一页</button>
       {error&&<p role="alert">{error}</p>}
-    </div>}
-    {orderChanged&&<p className="album-order-note">照片列表已更新。<a href={collectionId?`/album?collection=${encodeURIComponent(collectionId)}`:"/album?view=photos"}>刷新相册</a>可查看最新照片。</p>}
+    </nav>}
     <dialog ref={dialog} className="album-viewer" aria-labelledby="album-photo-title" onClose={()=>setSelected(null)} onCancel={()=>setSelected(null)}
       onClick={event=>{if(event.target===event.currentTarget){const bounds=event.currentTarget.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)setSelected(null);}}}
       onKeyDown={event=>{if(event.key==="ArrowLeft"&&selected!==null&&selected>0){event.preventDefault();setSelected(selected-1);}if(event.key==="ArrowRight"&&selected!==null&&selected<count-1){event.preventDefault();setSelected(selected+1);}}}>

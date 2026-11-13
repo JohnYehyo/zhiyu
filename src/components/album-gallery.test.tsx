@@ -15,3 +15,7 @@ it("stops at the server's last page even when live reordering produced a duplica
  const html=renderToStaticMarkup(<AlbumGallery initial={{photos,pagination:{page:2,pageSize:24,total:25}}}/>);
  expect(html).not.toContain("加载更多照片");
 });
+it("shows explicit pagination for a multi-page album",()=>{
+ const html=renderToStaticMarkup(<AlbumGallery initial={{photos:[],pagination:{page:1,pageSize:24,total:30}}}/>);
+ expect(html).toContain("第 1 / 2 页");expect(html).toContain("下一页");
+});

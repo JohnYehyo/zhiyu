@@ -8,6 +8,7 @@ import type { PageInfo } from "@/lib/admin/queries";
 import { adminRequest, ApiError, completeUpload, putFile, type PendingUpload } from "@/lib/admin/api";
 import { AlbumAddition, albumErrorMessage, albumUpdatePayload, type AlbumAdditionState } from "@/lib/admin/album-workflow";
 import { AlbumBatch } from "@/lib/admin/album-batch";
+import { applyAlbumBulk } from "@/lib/admin/album-bulk-actions";
 import { protectEditorNavigation } from "@/lib/admin/navigation";
 import { mediaUrl } from "@/lib/media";
 import { MediaPicker } from "./media-picker";
@@ -33,6 +34,8 @@ function edit(photo: AlbumPhoto): Selection {
 
 export function AlbumManager() {
   const [page, setPage] = useState(1);
+  const [batchMode, setBatchMode] = useState(false);
+  const [checked, setChecked] = useState<AlbumPhoto[]>([]);
   const [collectionFilter, setCollectionFilter] = useState("all");
   const [collections, setCollections] = useState<AlbumCollection[]>([]);
   const [collectionsError, setCollectionsError] = useState("");
@@ -46,7 +49,7 @@ export function AlbumManager() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [picker, setPicker] = useState(false);
   const [addition, setAddition] = useState<AlbumAdditionState>({ phase: "idle", percent: 0 });
-  const [action, setAction] = useState<"save" | "publish" | "remove" | "cover" | null>(null);
+  const [action, setAction] = useState<"save" | "publish" | "remove" | "cover" | "batch" | null>(null);
   const [actionError, setActionError] = useState("");
   const [conflict, setConflict] = useState(false);
   const [message, setMessage] = useState("");
@@ -217,6 +220,39 @@ export function AlbumManager() {
     }
   }
 
+  async function runBatch(kind: "delete" | "publish" | "unpublish") {
+    if (!checked.length || mutation.current || !canLeaveSelection()) return;
+    const label = kind === "delete" ? "删除" : kind === "publish" ? "公开" : "收起";
+    if (!window.confirm(`确定${label}选中的 ${checked.length} 张照片吗？${kind === "delete" ? "照片将移出相册，素材和文章引用保留。" : ""}`)) return;
+    mutation.current = true; setAction("batch"); setActionError(""); setMessage("");
+    const { succeeded, failed } = await applyAlbumBulk(checked, kind, {
+      remove: async (photo) => {
+        const result = await adminRequest<{deletedId:string}>(`/api/admin/album/${photo.id}`, "DELETE", {revision:photo.revision});
+        if (result.deletedId !== photo.id) throw new Error("删除结果未确认");
+      },
+      update: async (photo, published) => { await adminRequest(`/api/admin/album/${photo.id}`, "PATCH", albumUpdatePayload(photo, photo, published)); },
+    });
+    if (mounted.current) {
+      setChecked([]); setSelection(null); setConflict(false); setPage(1); setRefresh(value => value + 1);
+      setMessage(`${label}完成：成功 ${succeeded} 张${failed.length ? `，失败 ${failed.length} 张（${failed.map(photo => photo.caption || photo.id).join("、")}）。请重新选择失败照片重试。` : "。"}`);
+      setAction(null);
+    }
+    mutation.current = false;
+  }
+  async function chooseManyMedia(items: MediaRecord[]) {
+    if (mutation.current) return;
+    mutation.current = true; setAction("batch"); setPicker(false); setMessage("");
+    let addedCount = 0; let duplicateCount = 0; let failedCount = 0;
+    for (const media of items) {
+      try {
+        await adminRequest("/api/admin/album", "POST", {mediaId:media.id, caption:"", alt:"", date:"", collectionId:uploadCollection || null});
+        addedCount++;
+      } catch (cause) { if (cause instanceof ApiError && cause.code === "ALBUM_DUPLICATE") duplicateCount++; else failedCount++; }
+    }
+    if (mounted.current) { setMessage(`已加入 ${addedCount} 张，已在相册 ${duplicateCount} 张，失败 ${failedCount} 张。新加入照片尚未公开。`); setRefresh(value => value + 1); setAction(null); }
+    mutation.current = false;
+  }
+
   return (
     <div className="admin-album-manager">
       <AlbumCollections collections={collections} value={collectionFilter} disabled={busy} beforeChange={canLeaveSelection} onDirtyChange={setCollectionDirty} onBusyChange={setCollectionBusy} onEditingChange={setCollectionEditing}
@@ -228,7 +264,7 @@ export function AlbumManager() {
       <div className="admin-list-actions">
         <div className="admin-album-add-actions">
           <label className="admin-album-upload-target">上传至<select value={uploadCollection} disabled={busy || recovering} onChange={(event) => setUploadCollection(event.target.value)}><option value="">未分组</option>{collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.title}</option>)}</select></label>
-          <button className="admin-button primary" disabled={busy || recovering} onClick={() => fileInput.current?.click()}><Upload size={15} />上传照片</button>
+          <button className="admin-button primary" disabled={busy || recovering} onClick={() => fileInput.current?.click()}><Upload size={15} />批量上传照片</button>
           <button className="admin-button" disabled={busy || recovering} onClick={() => setPicker((value) => !value)}><Images size={15} />从素材添加</button>
           <input ref={fileInput} className="admin-album-file" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" aria-label="选择相册照片文件" disabled={busy || recovering} onChange={(event) => {
             const files = Array.from(event.target.files ?? []); event.target.value = "";
@@ -238,7 +274,7 @@ export function AlbumManager() {
         <button className="admin-button subtle" aria-label="刷新相册列表" disabled={loading || busy} onClick={() => setRefresh((value) => value + 1)}><RefreshCw size={15} /></button>
       </div>
       <p className="admin-hint">相册单独管理，不会自动收录日记照片。新照片默认未公开；从素材添加无需重复上传。</p>
-      {picker && !busy && !recovering && <div className="admin-album-picker"><p className="admin-hint">选择一张图片加入相册，日记中使用的同一素材不受影响。</p><MediaPicker imagesOnly onSelect={chooseMedia} onClose={() => setPicker(false)} /></div>}
+      {picker && !busy && !recovering && <div className="admin-album-picker"><p className="admin-hint">可跨页选择多张图片加入相册，日记中使用的素材不受影响。</p><MediaPicker imagesOnly onSelect={chooseMedia} onSelectMany={(items) => void chooseManyMedia(items)} onClose={() => setPicker(false)} /></div>}
       {(adding || recovering || addition.error) && <section className="admin-album-upload" aria-label="照片添加状态">
         {adding && <p role="status">{addition.phase === "uploading" ? `正在上传照片… ${addition.percent}%` : addition.phase === "confirming" ? "正在确认图片上传结果…" : "图片已就绪，正在加入相册…"}</p>}
         {addition.phase === "uploading" && <progress value={addition.percent} max={100} aria-label="照片上传进度" />}
@@ -253,8 +289,12 @@ export function AlbumManager() {
       {actionError && <p className="admin-error" role="alert">{actionError}</p>}
       <div className="admin-album-workspace">
         <section className="admin-album-list" aria-label="相册照片">
-          {loading ? <p className="admin-album-placeholder" role="status">正在读取相册…</p> : result?.error ? <div className="admin-error" role="alert"><p>{result.error}</p><button className="admin-button" onClick={() => setRefresh((value) => value + 1)}>重试读取</button></div> : data?.photos.length === 0 ? <p className="admin-empty">{collectionFilter === "all" ? "相册还没有照片。上传照片，或从已上传素材中添加一张。" : "这里还没有照片。可选择此相册集作为上传目标，或在照片信息中调整归属。"}</p> : <ul className="admin-album-grid">
-            {data?.photos.map((photo) => <li key={photo.id}><button className="admin-album-photo" aria-pressed={selection?.photo.id === photo.id} aria-controls="album-photo-editor" disabled={busy} onClick={() => selectPhoto(photo)}>
+          <div className="admin-album-batch-actions">
+            <button type="button" className="admin-button" disabled={busy} onClick={() => { if (!canLeaveSelection()) return; setSelection(null); setBatchMode(!batchMode); setChecked([]); }}>{batchMode ? "退出批量管理" : "批量管理"}</button>
+            {batchMode && <><button type="button" className="admin-button" disabled={busy || !data?.photos.length} onClick={() => setChecked(current => { const ids = new Set(data?.photos.map(photo => photo.id)); const all = data?.photos.every(photo => current.some(item => item.id === photo.id)); return all ? current.filter(item => !ids.has(item.id)) : [...current.filter(item => !ids.has(item.id)), ...(data?.photos ?? [])]; })}>选择本页</button><span>已选 {checked.length} 张</span><button type="button" className="admin-button" disabled={busy || !checked.length} onClick={() => void runBatch("publish")}>批量公开</button><button type="button" className="admin-button" disabled={busy || !checked.length} onClick={() => void runBatch("unpublish")}>批量收起</button><button type="button" className="admin-button" disabled={busy || !checked.length} onClick={() => void runBatch("delete")}>批量删除</button></>}
+          </div>
+          {loading ? <p className="admin-album-placeholder" role="status">正在读取相册…</p> : result?.error ? <div className="admin-error" role="alert"><p>{result.error}</p><button className="admin-button" onClick={() => setRefresh((value) => value + 1)}>重试读取</button></div> : data?.photos.length === 0 ? <p className="admin-empty">{collectionFilter === "all" ? "相册还没有照片。上传照片，或从已上传素材中添加一张。" : collectionFilter === "unassigned" ? "当前没有未分组照片。可在照片信息中将所属相册集改为未分组。" : "这里还没有照片。可选择此相册集作为上传目标，或在照片信息中调整归属。"}</p> : <ul className="admin-album-grid">
+            {data?.photos.map((photo) => <li key={photo.id}>{batchMode && <label className="admin-album-check"><input type="checkbox" aria-label={`选择照片 ${photo.caption || photo.id}`} checked={checked.some(item => item.id === photo.id)} disabled={busy} onChange={(event) => setChecked(current => event.target.checked ? [...current, photo] : current.filter(item => item.id !== photo.id))} />选择</label>}<button className="admin-album-photo" aria-pressed={batchMode ? checked.some(item => item.id === photo.id) : selection?.photo.id === photo.id} aria-controls={batchMode ? undefined : "album-photo-editor"} disabled={busy} onClick={() => batchMode ? setChecked(current => current.some(item => item.id === photo.id) ? current.filter(item => item.id !== photo.id) : [...current, photo]) : selectPhoto(photo)}>
               <span className="admin-album-thumb">{mediaUrl(photo.storageKey) ? <img src={mediaUrl(photo.storageKey)} alt={photo.alt || "相册照片"} loading="lazy" /> : <Images size={24} />}{collections.some(item=>item.coverPhotoId===photo.id)&&<span className="admin-album-cover-badge">封面</span>}</span>
               <span className="admin-album-photo-caption">{photo.caption || "未填写图注"}</span><span className="admin-album-photo-meta">{photo.date || new Date(photo.createdAt).toLocaleDateString("zh-CN")} · {photo.published ? "已公开" : "未公开"}</span>
             </button></li>)}
@@ -281,7 +321,7 @@ export function AlbumManager() {
             }}/>
 
             {conflict && <div className="admin-album-conflict"><p>服务器上的照片已变化，本地修改仍保留。重新选择前请先保留需要的文字。</p><button type="button" className="admin-button" disabled={busy} onClick={() => { if (canLeaveSelection()) { setSelection(null); setConflict(false); setActionError(""); setRefresh((value) => value + 1); } }}>放弃本地修改并刷新</button></div>}
-            <button type="button" className="admin-button subtle admin-album-remove" disabled={busy || conflict} onClick={() => void remove()}><Trash2 size={14} />移出相册</button>
+            <button type="button" className="admin-button subtle admin-album-remove" disabled={busy || conflict} onClick={() => void remove()}><Trash2 size={14} />删除照片</button>
           </form>
         </section>}
       </div>

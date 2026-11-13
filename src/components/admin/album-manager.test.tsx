@@ -21,3 +21,8 @@ it("supports multiple image files, collection filtering and an explicit private 
   expect(html).toContain("新建相册集");
   expect(html).toContain("上传至");
 });
+it("makes batch management and multi-file upload discoverable", () => {
+ const html = renderToStaticMarkup(<AlbumManager />);
+ expect(html).toContain("批量管理");
+ expect(html).toContain("批量上传照片");
+});

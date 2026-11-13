@@ -16,16 +16,19 @@ export function MediaPicker({
   imagesOnly = false,
   onSelect,
   onClose,
+  onSelectMany,
 }: {
   imagesOnly?: boolean;
   onSelect: (media: MediaRecord) => void;
   onClose: () => void;
+  onSelectMany?: (media: MediaRecord[]) => void;
 }) {
   const [query, setQuery] = useState({
     kind: (imagesOnly ? "image" : "all") as MediaKind,
     page: 1,
   });
   const [retry, setRetry] = useState(0);
+  const [selected, setSelected] = useState<MediaRecord[]>([]);
   const [state, setState] = useState<{
     key: string;
     data?: Result;
@@ -64,7 +67,7 @@ export function MediaPicker({
         </button>
       </div>
       <p className="admin-hint">
-        选择已完成上传的{imagesOnly ? "图片作为封面" : "图片或视频插入正文"}
+        选择已完成上传的{onSelectMany ? "图片，可跨页多选" : imagesOnly ? "图片作为封面" : "图片或视频插入正文"}
         ，无需重复上传。
       </p>
       {!imagesOnly && (
@@ -110,7 +113,8 @@ export function MediaPicker({
                     !mediaUrl(media.storageKey) ||
                     (imagesOnly && !image)
                   }
-                  onClick={() => onSelect(media)}
+                  aria-pressed={onSelectMany ? selected.some(item => item.id === media.id) : undefined}
+                  onClick={() => onSelectMany ? setSelected(current => current.some(item => item.id === media.id) ? current.filter(item => item.id !== media.id) : [...current, media]) : onSelect(media)}
                 >
                   <span className="admin-media-thumb">
                     {image ? (
@@ -141,6 +145,7 @@ export function MediaPicker({
           })}
         </ul>
       )}
+      {onSelectMany && <button type="button" className="admin-button primary" disabled={!selected.length} onClick={() => onSelectMany(selected)}>加入所选素材（{selected.length}）</button>}
       {data && (
         <Pagination
           value={data.pagination}
